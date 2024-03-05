@@ -1,32 +1,24 @@
-# Define your Vault address and token
-$vaultAddr = "VAULT_ADDR"
-$token = "YOUR_VAULT_TOKEN"
+# Set the Vault address and token
+$vaultAddress = "https://your-vault-address:8200"
+$vaultToken = "your-token"
 
-# Define the role name
-$roleName = "YOUR_ROLE_NAME"
+# Set the secret ID you want to revoke
+$secretID = "your-secret-id"
 
-# Define the Secret ID accessor to revoke
-$secretIdAccessor = "YOUR_SECRET_ID_ACCESSOR"
-
-# Define the path to the endpoint for revoking Secret ID accessor
-$revokePath = "auth/approle/role/$roleName/secret-id-accessor/destroy"
-
-# Prepare headers with the Vault token
+# Create headers with the Vault token
 $headers = @{
-    "X-Vault-Token" = $token
+    "X-Vault-Token" = $vaultToken
 }
 
-# Prepare the request body with the Secret ID accessor to revoke
-$body = @{
-    accessor = $secretIdAccessor
-} | ConvertTo-Json
+# Construct the URL for revoking the secret ID
+$url = "$vaultAddress/v1/auth/token/revoke-id/$secretID"
 
-# Revoke the Secret ID using its accessor
-$response = Invoke-RestMethod -Uri "$vaultAddr/v1/$revokePath" -Method Post -Headers $headers -Body $body
+# Revoke the secret ID
+$response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers
 
-# Check if the Secret ID was successfully revoked
-if ($response.data.success -eq $true) {
-    Write-Output "Secret ID revoked successfully"
+# Check if the revocation was successful
+if ($response.data.revoke_secret_id) {
+    Write-Host "Secret ID revoked successfully."
 } else {
-    Write-Output "Failed to revoke Secret ID"
+    Write-Host "Failed to revoke secret ID."
 }
