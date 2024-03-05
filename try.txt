@@ -2,24 +2,38 @@
 $vaultAddr = "VAULT_ADDR"
 $token = "YOUR_VAULT_TOKEN"
 
-# Define the role name
-$roleName = "YOUR_ROLE_NAME"
+# Initial authentication to obtain a token (assuming AppRole authentication for this example)
+$appRoleId = "YOUR_APPROLE_ID"
+$secretIdPath = "auth/approle/login"
+$appRoleCredentials = @{
+    role_id   = $appRoleId
+} | ConvertTo-Json
 
-# Define the path to the endpoint for listing Secret IDs
-$listPath = "auth/approle/role/$roleName/secret-id-accessors"
+# Authenticate and capture the initial token response
+$authResponse = Invoke-RestMethod -Uri "$vaultAddr/v1/$secretIdPath" -Method Post -Body $appRoleCredentials
+$initialToken = $authResponse.auth.client_token
 
-# Prepare headers with the Vault token
+# Extract the Secret ID accessor from the audit logs (replace with your role and timeframe)
+$auditLogs = Invoke-RestMethod -Uri "$vaultAddr/v1/sys/audit/file" -Method Get -Headers @{
+    "X-Vault-Token" = $token
+}
+$secretIdAccessor = $auditLogs.data.events | Where-Object { $_.data.auth_path -eq "approle/login" } | Select-Object -First 1 -ExpandProperty "data.secret_id_accessor"
+
+# Revoke the Secret ID using the accessor
+$revokePath = "auth/approle/role/YOUR_ROLE_NAME/secret-id/destroy"
 $headers = @{
     "X-Vault-Token" = $token
 }
+$body = @{
+    secret_id_accessor = $secretIdAccessor
+} | ConvertTo-Json
 
-# Make a request to list Secret ID accessors
-$response = Invoke-RestMethod -Uri "$vaultAddr/v1/$listPath" -Headers $headers -Method Get
+# Revoke the Secret ID
+$response = Invoke-RestMethod -Uri "$vaultAddr/v1/$revokePath" -Method Post -Headers $headers -Body $body
 
-# Extract the list of Secret ID accessors from the response
-$secretIdAccessors = $response.data.keys
-
-# Print the list of Secret ID accessors
-foreach ($accessor in $secretIdAccessors) {
-    Write-Output $accessor
+# Check if the Secret ID was successfully revoked
+if ($response.data.success -eq $true) {
+    Write-Output "Secret ID revoked successfully"
+} else {
+    Write-Output "Failed to revoke Secret ID"
 }
