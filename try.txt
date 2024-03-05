@@ -2,33 +2,26 @@
 $vaultAddr = "VAULT_ADDR"
 $token = "YOUR_VAULT_TOKEN"
 
-# Initial authentication to obtain a token (assuming AppRole authentication for this example)
-$appRoleId = "YOUR_APPROLE_ID"
-$secretIdPath = "auth/approle/login"
-$appRoleCredentials = @{
-    role_id   = $appRoleId
-} | ConvertTo-Json
+# Define the role name
+$roleName = "YOUR_ROLE_NAME"
 
-# Authenticate and capture the initial token response
-$authResponse = Invoke-RestMethod -Uri "$vaultAddr/v1/$secretIdPath" -Method Post -Body $appRoleCredentials
-$initialToken = $authResponse.auth.client_token
+# Define the Secret ID accessor to revoke
+$secretIdAccessor = "YOUR_SECRET_ID_ACCESSOR"
 
-# Extract the Secret ID accessor from the audit logs (replace with your role and timeframe)
-$auditLogs = Invoke-RestMethod -Uri "$vaultAddr/v1/sys/audit/file" -Method Get -Headers @{
-    "X-Vault-Token" = $token
-}
-$secretIdAccessor = $auditLogs.data.events | Where-Object { $_.data.auth_path -eq "approle/login" } | Select-Object -First 1 -ExpandProperty "data.secret_id_accessor"
+# Define the path to the endpoint for revoking Secret ID accessor
+$revokePath = "auth/approle/role/$roleName/secret-id-accessor/destroy"
 
-# Revoke the Secret ID using the accessor
-$revokePath = "auth/approle/role/YOUR_ROLE_NAME/secret-id/destroy"
+# Prepare headers with the Vault token
 $headers = @{
     "X-Vault-Token" = $token
 }
+
+# Prepare the request body with the Secret ID accessor to revoke
 $body = @{
-    secret_id_accessor = $secretIdAccessor
+    accessor = $secretIdAccessor
 } | ConvertTo-Json
 
-# Revoke the Secret ID
+# Revoke the Secret ID using its accessor
 $response = Invoke-RestMethod -Uri "$vaultAddr/v1/$revokePath" -Method Post -Headers $headers -Body $body
 
 # Check if the Secret ID was successfully revoked
