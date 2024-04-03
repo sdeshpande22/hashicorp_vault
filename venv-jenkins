@@ -1,0 +1,26 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage('Add packages to requirements.txt') {
+            steps {
+                script {
+                    // Define a list of packages to add
+                    def packagesToAdd = ['package1==1.0.0', 'package2>=2.0.0', 'package3<3.0.0']
+                    
+                    // Path to the requirements.txt file
+                    def requirementsFile = 'path/to/requirements.txt'
+                    
+                    // Read the existing content of requirements.txt
+                    def existingContent = readFile requirementsFile
+                    
+                    // Append new packages to the existing content
+                    def newContent = existingContent + '\n' + packagesToAdd.join('\n')
+                    
+                    // Write the updated content back to requirements.txt
+                    writeFile file: requirementsFile, text: newContent
+                }
+            }
+        }
+    }
+}
