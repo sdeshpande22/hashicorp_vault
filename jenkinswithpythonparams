@@ -1,0 +1,23 @@
+pipeline {
+    agent any
+    
+    parameters {
+        string(name: 'PARAM1', defaultValue: '', description: 'Description of parameter 1')
+        string(name: 'PARAM2', defaultValue: '', description: 'Description of parameter 2')
+    }
+    
+    stages {
+        stage('Build') {
+            steps {
+                // Execute the Python script
+                script {
+                    // Unix-like environment
+                    sh "python /path/to/your/script.py --param1 \"${params.PARAM1}\" --param2 \"${params.PARAM2}\""
+                    
+                    // Windows environment
+                    // bat "python C:\\path\\to\\your\\script.py --param1 \"%PARAM1%\" --param2 \"%PARAM2%\""
+                }
+            }
+        }
+    }
+}
