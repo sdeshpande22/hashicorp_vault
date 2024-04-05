@@ -1,5 +1,5 @@
-# 1) Jmeter dymanic parameters
-use variables within your Test plan.
-Define variables on the Test plan and allow there variables to be initialized with a property. EX: host = ${__P(host)}
-Always use the variable within the Test plan
+# Jmeter dymanic parameters
+## 1) use variables within your Test plan.
+## 2) Define variables on the Test plan and allow there variables to be initialized with a property. EX: host = ${__P(host)}
+## 3) Always use the variable within the Test plan
 ![image](https://github.com/sdeshpande22/hashicorp_vault/assets/54231317/ba216c6b-c65c-4dc1-83be-ad7f9f1d91ae)
