@@ -1,0 +1,17 @@
+In JMeter, thread properties refer to various settings and configurations that control the behavior of virtual users (threads) during a load test. These properties define how threads are created, how they behave, and how they interact with the system under test. Here are some of the key thread properties in JMeter:
+
+Number of Threads (Users): This property specifies the total number of virtual users (threads) that will be created to simulate concurrent users accessing the application. Each thread represents a user interacting with the system independently.
+
+Ramp-Up Period: The ramp-up period determines how long it takes for all the threads to start executing. It specifies the time it takes for JMeter to start all the threads defined in the test plan. For example, if you have 100 threads and a ramp-up period of 10 seconds, JMeter will start 10 threads per second until all 100 threads are active.
+
+Loop Count: This property defines how many times each thread will execute the test plan. If the loop count is set to 1, each thread will execute the test plan once. If it's set to a higher number, each thread will execute the test plan repeatedly for the specified number of iterations.
+
+Scheduler: The scheduler allows you to specify the duration of the test and when it should run. You can set the test to run for a specific duration or specify a start and end time for the test.
+
+Duration: This property is used in conjunction with the scheduler and specifies the total duration of the test in seconds. If the scheduler is configured to run the test for a specific duration, the test will stop executing after the specified duration has elapsed.
+
+Delay Thread Creation until Needed: If enabled, JMeter will delay the creation of threads until they are needed. This can help conserve resources if you have a large number of threads but only need a subset of them active at any given time.
+
+Same User on Each Iteration: This property ensures that the same user (thread) is used for each iteration of the test plan. If disabled, a new user will be created for each iteration.
+
+These thread properties can be configured at the Thread Group level in the JMeter test plan. By adjusting these properties, you can control the concurrency, duration, and behavior of virtual users during a load test to simulate realistic user behavior and analyze the performance of your application under different scenarios.
