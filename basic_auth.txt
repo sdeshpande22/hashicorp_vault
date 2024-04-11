@@ -1,0 +1,27 @@
+import requests
+import base64
+
+# URL of the authentication endpoint
+auth_url = "https://example.com/authenticate"
+
+# Username and password
+username = "your_username"
+password = "your_password"
+
+# Encode the username and password as a Basic Auth token
+token = base64.b64encode(f"{username}:{password}".encode()).decode()
+
+# Set up the headers with the Basic Auth token
+headers = {
+    "Authorization": f"Basic {token}"
+}
+
+# Example API call using Basic Auth
+api_url = "https://example.com/api/resource"
+api_response = requests.get(api_url, headers=headers)
+
+# Check the response
+if api_response.status_code == 200:
+    print("API Response:", api_response.json())
+else:
+    print("Failed to access the API:", api_response.text)
