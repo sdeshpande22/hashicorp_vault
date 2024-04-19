@@ -1,0 +1,7 @@
+---
+- name: Run PowerShell script
+  hosts: your_windows_host
+  tasks:
+    - name: Run PowerShell script
+      win_shell: "C:\\path\\to\\your_script.ps1"
+      # or script absolute path without escape characters: win_shell: "C:/path/to/your_script.ps1"
