@@ -1,0 +1,14 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage('List Installed Apps') {
+            steps {
+                script {
+                    def installedApps = sh(script: 'rpm -qa', returnStdout: true).trim()
+                    echo "Installed Applications:\n${installedApps}"
+                }
+            }
+        }
+    }
+}
