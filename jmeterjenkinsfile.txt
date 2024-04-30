@@ -1,11 +1,14 @@
 pipeline {
     agent any
+    parameters {
+        string(name: 'USERNAME', defaultValue: '', description: 'Username for authentication')
+        credentials(name: 'PASSWORD', defaultValue: '', description: 'Password for authentication', credentialType: 'Username with password', required: true)
+    }
     stages {
         stage('Run JMeter Test') {
             steps {
                 script {
-                    withCredentials([string(credentialsId: 'USERNAME', variable: 'USERNAME'),
-                                     string(credentialsId: 'PASSWORD', variable: 'PASSWORD')]) {
+                    withCredentials([usernamePassword(credentialsId: 'PASSWORD', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                         sh 'jmeter -n -t my_test.jmx -Jusername=${USERNAME} -Jpassword=${PASSWORD}'
                     }
                 }
