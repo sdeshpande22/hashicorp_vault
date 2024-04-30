@@ -1,0 +1,15 @@
+pipeline {
+    agent any
+    stages {
+        stage('Run JMeter Test') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'USERNAME', variable: 'USERNAME'),
+                                     string(credentialsId: 'PASSWORD', variable: 'PASSWORD')]) {
+                        sh 'jmeter -n -t my_test.jmx -Jusername=${USERNAME} -Jpassword=${PASSWORD}'
+                    }
+                }
+            }
+        }
+    }
+}
