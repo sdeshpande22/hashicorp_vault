@@ -16,3 +16,20 @@ pipeline {
         }
     }
 }
+
+pipeline {
+    agent any
+    
+    stages {
+        stage('Check JMeter Version and Path') {
+            steps {
+                script {
+                    def jmeterVersion = sh(script: 'jmeter -v | grep "version"', returnStdout: true).trim()
+                    def jmeterPath = sh(script: 'which jmeter', returnStdout: true).trim()
+                    echo "JMeter Version: ${jmeterVersion}"
+                    echo "JMeter Path: ${jmeterPath}"
+                }
+            }
+        }
+    }
+}
