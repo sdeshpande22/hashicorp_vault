@@ -1,0 +1,44 @@
+import csv
+
+def csv_to_html(input_file, output_file):
+    with open(input_file, 'r', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        rows = list(reader)
+
+    with open(output_file, 'w') as htmlfile:
+        htmlfile.write('<!DOCTYPE html>\n')
+        htmlfile.write('<html>\n')
+        htmlfile.write('<head>\n')
+        htmlfile.write('<title>CSV to HTML</title>\n')
+        htmlfile.write('<style>\n')
+        htmlfile.write('table {\n')
+        htmlfile.write('    border-collapse: collapse;\n')
+        htmlfile.write('    width: 100%;\n')
+        htmlfile.write('}\n')
+        htmlfile.write('th, td {\n')
+        htmlfile.write('    border: 1px solid black;\n')
+        htmlfile.write('    padding: 8px;\n')
+        htmlfile.write('    text-align: left;\n')
+        htmlfile.write('}\n')
+        htmlfile.write('tr:nth-child(even) {\n')
+        htmlfile.write('    background-color: #f2f2f2;\n')
+        htmlfile.write('}\n')
+        htmlfile.write('</style>\n')
+        htmlfile.write('</head>\n')
+        htmlfile.write('<body>\n')
+        htmlfile.write('<table>\n')
+
+        for row in rows:
+            htmlfile.write('<tr>\n')
+            for col in row:
+                htmlfile.write('<td>{}</td>\n'.format(col))
+            htmlfile.write('</tr>\n')
+
+        htmlfile.write('</table>\n')
+        htmlfile.write('</body>\n')
+        htmlfile.write('</html>\n')
+
+# Example usage
+input_file = 'input.csv'
+output_file = 'output.html'
+csv_to_html(input_file, output_file)
