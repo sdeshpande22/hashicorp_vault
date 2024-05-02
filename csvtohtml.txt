@@ -1,6 +1,7 @@
 import csv
+from datetime import datetime
 
-def csv_to_html(input_file, output_file):
+def convert_timestamps(input_file, output_file, timestamp_column):
     with open(input_file, 'r', newline='') as csvfile:
         reader = csv.reader(csvfile)
         rows = list(reader)
@@ -30,8 +31,14 @@ def csv_to_html(input_file, output_file):
 
         for row in rows:
             htmlfile.write('<tr>\n')
-            for col in row:
-                htmlfile.write('<td>{}</td>\n'.format(col))
+            for i, col in enumerate(row):
+                if i == timestamp_column:
+                    # Convert timestamp to desired format
+                    timestamp = datetime.strptime(col, '%Y-%m-%d %H:%M:%S')
+                    formatted_timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                    htmlfile.write('<td>{}</td>\n'.format(formatted_timestamp))
+                else:
+                    htmlfile.write('<td>{}</td>\n'.format(col))
             htmlfile.write('</tr>\n')
 
         htmlfile.write('</table>\n')
@@ -41,4 +48,5 @@ def csv_to_html(input_file, output_file):
 # Example usage
 input_file = 'input.csv'
 output_file = 'output.html'
-csv_to_html(input_file, output_file)
+timestamp_column = 2  # Assuming the timestamp is in the third column (indexing starts from 0)
+convert_timestamps(input_file, output_file, timestamp_column)
