@@ -1,0 +1,36 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage('Copy Files') {
+            steps {
+                script {
+                    // Copy "content" folder and its subfolders to a temporary directory
+                    def tempDir = "${env.WORKSPACE}/temp"
+                    sh "mkdir -p ${tempDir}"
+                    copyArtifacts(
+                        filter: 'content/**',
+                        flatten: false,
+                        target: tempDir
+                    )
+                    
+                    // Copy "htmlfile.html" to the temporary directory
+                    sh "cp htmlfile.html ${tempDir}/"
+                }
+            }
+        }
+        
+        stage('Send Email') {
+            steps {
+                emailext (
+                    attachmentsPattern: "${tempDir}/**",
+                    body: '${SCRIPT,template="groovy-html.template"}',
+                    from: 'Jenkins<devops_tooling_build_tools@noexternalmail.hsbc.com>',
+                    recipientProviders: [requestor(), upstreamDevelopers()],
+                    subject: "${env.JOB_NAME} - Build # ${env.BUILD_NUMBER} - Successful",
+                    mimeType: 'text/html' // Set the MIME type to 'text/html' for HTML content
+                )
+            }
+        }
+    }
+}
