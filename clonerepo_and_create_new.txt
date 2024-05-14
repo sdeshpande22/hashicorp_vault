@@ -1,0 +1,16 @@
+1. Clone a repository: git clone <repository_url>
+2. Rename one specific file within the cloned repository: 
+	cd <cloned_repository_directory>
+	mv old_filename new_filename
+
+3. Create a new repository using git commands:git init <new_repository_name>
+4. Add the files to the new repository:
+	cd <cloned_repository_directory>
+	git add .
+5. Commit the changes
+	git commit -m "Initial commit"
+6. Add the URL of the new repository as a remote:
+	git remote add origin <new_repository_url>
+7. Push the changes to the new repository:
+	git push -u origin main
+
