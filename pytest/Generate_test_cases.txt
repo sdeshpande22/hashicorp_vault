@@ -1,0 +1,100 @@
+import pandas as pd
+import config  # Import the configuration file
+import requests  # Import requests library
+import re  # Import the regular expression module
+import json  # Import JSON module
+
+
+# Read data from Excel sheet into a DataFrame
+df = pd.read_excel('test_data.xlsx')
+
+# Create a new Python file to write the test functions
+with open('test_generated.py', 'w') as f:
+    # Write import statements
+    f.write("import pytest\n")
+    f.write("import config\n")
+    f.write("import requests\n\n")  # Import requests library
+
+    # Function to convert a string to a valid Python identifier
+    def to_valid_identifier(s):
+        return re.sub(r'\W|^(?=\d)', '_', s)
+
+    # Iterate over rows of the DataFrame
+    for index, row in df.iterrows():
+        # Dynamically define test function
+        function_name = to_valid_identifier(row['Function name'])
+        #filename = to_valid_identifier(row['Filename'])
+        method_name = (to_valid_identifier(row['Method name for sending requests'])).strip()
+        child_path = str(row['Child Path']) if not pd.isnull(row['Child Path']) and row['Child Path'] != 'nan' else ''
+        url = config.API_PATH + child_path
+        if not pd.isnull(row['payload']):  # Check if the 'payload' column value is not null
+            payload_str = row['payload']    # Assign the value to payload_str
+        else:
+            payload_str = '{}'              # If it's null, assign an empty JSON string to payload_str
+
+        payload = json.loads(payload_str)  # Convert JSON string to dictionary
+        expected_response_code = row["Expected Response Code"]
+
+        # Constructing the test description
+        #test_description = f"Executing test for {function_name} in {filename} using {method_name} with URL: {url}"
+        test_description = f"Executing test for {function_name} in using {method_name} with URL: {url}"
+        def common_code():
+            f.write(f"def test_{function_name}_{method_name}():\n")
+            #f.write(f"\tfilename = '{filename}'\n")
+            f.write(f"\tfunction_name = '{function_name}'\n")
+            f.write(f"\tmethod_name = '{method_name}'\n")
+            f.write(f"\ttest_description = '{test_description}'\n")  # Add Description
+            f.write(f"\turl = '{url}'\n")  # Add URL
+            f.write("\tHEADERS = config.HEADERS\n")  # Include headers
+            #f.write(f"\tprint(\"{test_description}\")\n")
+            #f.write(f"\tprint(\"{url}\")\n")
+            f.write("\tprint(\"test_description:\", test_description)\n")
+            f.write("\tprint(\"url=\", url)\n")
+        # Handling different methods
+        if method_name.lower() == 'get':
+            common_code()
+            if payload:
+                f.write(f"\tparams = {payload}\n")  # Use payload as params
+                f.write("\tpayload = None\n")  # Set payload to None for GET requests
+                f.write("\tif params is not None:\n")
+                f.write("\t\tprint(\"Params:\", params)\n")
+                f.write("\telse:\n")
+                f.write("\t\tprint(\"No params\")\n")
+            else:
+                f.write("\tparams = None\n")  # Set params to None if payload is empty
+                f.write("\t\tprint(\"No params\")\n")
+            
+            # Call handle_request function with the entire row
+            f.write("\tresponse = config.handle_request(method_name, url, payload, HEADERS)\n")
+        
+            # Assertion
+            f.write(f"\tassert response.status_code == {row['Expected Response Code']}, f\"Expected response code {row['Expected Response Code']} but got {{response.status_code}}\"\n")
+            # Implement test logic here
+            f.write("\t# Implement additional assertions or test logic here\n\n")
+        
+        elif method_name.lower() == 'delete':
+            common_code()
+            # Make API request
+            f.write("\tresponse = requests.delete(url, headers=HEADERS)\n")
+            # Assertion
+            f.write(f"\tassert response.status_code == {row['Expected Response Code']}, f\"Expected response code {row['Expected Response Code']} but got {{response.status_code}}\"\n")
+            # Implement test logic here
+            f.write("\t# Implement additional assertions or test logic here\n\n")
+        
+        else:
+            common_code()
+            if payload:
+                f.write(f"\tpayload = {payload}\n")  # Define payload if not empty
+                f.write("\tif payload is not None:\n")
+                f.write("\t\tprint(\"Payload:\", payload)\n")
+                f.write("\telse:\n")
+                f.write("\t\tprint(\"No Payload\")\n")
+            else:
+                f.write("\tpayload = None\n")  # Set it to None if payload is empty
+                f.write("\t\tprint(\"No payload\")\n")
+            # Call handle_request function with the entire row
+            f.write("\tresponse = config.handle_request(method_name, url, payload, HEADERS)\n")
+            # Assertion
+            f.write(f"\tassert response.status_code == {row['Expected Response Code']}, f\"Expected response code {row['Expected Response Code']} but got {{response.status_code}}\"\n")
+            # Implement test logic here
+            f.write("\t# Implement additional assertions or test logic here\n\n")
