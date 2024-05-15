@@ -1,0 +1,24 @@
+pipeline {
+    agent "CM-LINUX"
+    
+    parameters {
+        string(name: 'USERNAME', defaultValue: '', description: 'Enter username')
+        string(name: 'PASSWORD', defaultValue: '', description: 'Enter password', mask: true)
+        string(name: 'API_URL', defaultValue: 'http://example.com/api', description: 'Enter API URL')
+    }
+    
+    stages {
+        stage('Run Python Script') {
+            steps {
+                script {
+                    // Pass parameters as environment variables to the Python script
+                    sh 'python your_script.py USERNAME=${params.USERNAME} PASSWORD=${params.PASSWORD} API_URL=${params.API_URL}'
+
+                    
+                    // Print the password (masked) for debugging
+                    echo "Password: ${params.PASSWORD}"
+                }
+            }
+        }
+    }
+}
