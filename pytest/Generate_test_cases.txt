@@ -26,7 +26,7 @@ with open('test_generated.py', 'w') as f:
         #filename = to_valid_identifier(row['Filename'])
         method_name = (to_valid_identifier(row['Method name for sending requests'])).strip()
         child_path = str(row['Child Path']) if not pd.isnull(row['Child Path']) and row['Child Path'] != 'nan' else ''
-        url = config.API_PATH + child_path
+        url = config.API_URL + child_path
         if not pd.isnull(row['payload']):  # Check if the 'payload' column value is not null
             payload_str = row['payload']    # Assign the value to payload_str
         else:
