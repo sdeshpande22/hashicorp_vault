@@ -1,0 +1,50 @@
+import base64
+import requests
+import os
+from requests.auth import HTTPBasicAuth
+
+# Get username,password and API URL from environment variables
+USERNAME = os.environ.get('USERNAME')
+PASSWORD = os.environ.get('PASSWORD')
+API_URL = os.environ.get('API_URL')
+
+#################################Method1####################################
+'''
+# Encode credentials for basic authentication
+ENCODED_AUTH_TOKEN = base64.b64encode(f"{USERNAME}:{PASSWORD}".encode()).decode()
+
+# Headers for basic authentication
+HEADERS = {
+    "Authorization": f"Basic {ENCODED_AUTH_TOKEN}",
+    "Content-Type": "application/json"
+}
+
+def handle_request(method_name, url, payload, headers):
+    try:
+        if method_name.lower() in ['get', 'delete']:
+            response = getattr(requests, method_name.lower())(url, params=payload, headers=headers)
+        else:
+            response = getattr(requests, method_name.lower())(url, json=payload, headers=headers)
+        print(f"Request successful for {method_name.upper()} request. URL: {url}, Payload: {payload}, Headers: {headers}, Response: {response.json()}")
+        return response  # Return the response object
+    except Exception as e:
+        print(f"Error occurred: {e}")
+
+
+'''
+#############################################################################
+##########################Method2############################################
+#r = requests.post(URL, auth=HTTPBasicAuth('user', 'pass'), data=payload)
+
+def handle_request(method_name, url, payload, headers):
+    try:
+        if method_name.lower() in ['get', 'delete']:
+            response = getattr(requests, method_name.lower())(url, params=payload, auth=HTTPBasicAuth('USERNAME', 'PASSWORD'))
+        else:
+            response = getattr(requests, method_name.lower())(url, json=payload, auth=HTTPBasicAuth('USERNAME', 'PASSWORD'))
+        print(f"Request successful for {method_name.upper()} request. URL: {url}, Payload: {payload}, Response: {response.json()}")
+        return response  # Return the response object
+    except Exception as e:
+        print(f"Error occurred: {e}")
+
+#############################################################################
