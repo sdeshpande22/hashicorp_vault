@@ -1,49 +1,58 @@
 pipeline {
     agent any
-    
-    parameters {
-        choice(name: 'AuthenticationType', choices: ['BasicAuth', 'Token'], description: 'Select authentication type')
-        // Active Choices Parameters
-        // These parameters will be dynamically shown based on the AuthenticationType
-        choice(name: 'APIUrl', choices: [''], description: 'Enter API URL')
-        choice(name: 'Username', choices: [''], description: 'Enter username')
-        password(name: 'Password', defaultValue: '', description: 'Enter password')
-        choice(name: 'Token', choices: [''], description: 'Enter token')
-    }
-    
+
     stages {
-        stage('Setup Parameters') {
+        stage('Select Authentication Method') {
             steps {
                 script {
-                    // Dynamically control visibility based on AuthenticationType
-                    if (params.AuthenticationType == 'BasicAuth') {
-                        // Display BasicAuth related parameters
-                        echo "Using BasicAuth"
-                        env.API_URL = input message: 'API URL:', parameters: [string(defaultValue: '', description: 'Enter API URL', name: 'APIUrl')]
-                        env.USERNAME = input message: 'Username:', parameters: [string(defaultValue: '', description: 'Enter username', name: 'Username')]
-                        env.PASSWORD = input message: 'Password:', parameters: [password(description: 'Enter password', defaultValue: '', name: 'Password')]
-                    } else {
-                        // Display Token related parameters
-                        echo "Using Token"
-                        env.API_URL = input message: 'API URL:', parameters: [string(defaultValue: '', description: 'Enter API URL', name: 'APIUrl')]
-                        env.TOKEN = input message: 'Token:', parameters: [string(defaultValue: '', description: 'Enter token', name: 'Token')]
+                    def authMethod = input message: 'Select Authentication Method',
+                        parameters: [
+                            choice(name: 'AUTH_METHOD', choices: ['BasicAuth', 'Token'], description: 'Choose the authentication method')
+                        ]
+
+                    if (authMethod == 'BasicAuth') {
+                        def userInputs = input message: 'Provide BasicAuth Credentials',
+                            parameters: [
+                                string(name: 'USERNAME', defaultValue: '', description: 'Enter your username'),
+                                password(name: 'PASSWORD', defaultValue: '', description: 'Enter your password'),
+                                string(name: 'API_URL', defaultValue: '', description: 'Enter the API URL')
+                            ]
+
+                        env.USERNAME = userInputs.USERNAME
+                        env.PASSWORD = userInputs.PASSWORD
+                        env.API_URL = userInputs.API_URL
+
+                    } else if (authMethod == 'Token') {
+                        def tokenInputs = input message: 'Provide Token Credentials',
+                            parameters: [
+                                password(name: 'TOKEN', defaultValue: '', description: 'Enter your token'),
+                                string(name: 'API_URL', defaultValue: '', description: 'Enter the API URL')
+                            ]
+
+                        env.TOKEN = tokenInputs.TOKEN
+                        env.API_URL = tokenInputs.API_URL
                     }
                 }
             }
         }
         
-        stage('Build') {
+        stage('Print Inputs') {
             steps {
                 script {
-                    if (params.AuthenticationType == 'BasicAuth') {
-                        echo "Using BasicAuth with URL: ${env.API_URL}, Username: ${env.USERNAME}"
-                        // Add your build steps here using BasicAuth credentials
-                    } else {
-                        echo "Using Token with URL: ${env.API_URL}, Token: ${env.TOKEN}"
-                        // Add your build steps here using Token
+                    if (env.AUTH_METHOD == 'BasicAuth') {
+                        echo "Using BasicAuth"
+                        echo "Username: ${env.USERNAME}"
+                        echo "Password: ${env.PASSWORD}" // For security, avoid echoing sensitive information like passwords
+                        echo "API URL: ${env.API_URL}"
+                    } else if (env.AUTH_METHOD == 'Token') {
+                        echo "Using Token"
+                        echo "Token: ${env.TOKEN}" // For security, avoid echoing sensitive information like tokens
+                        echo "API URL: ${env.API_URL}"
                     }
                 }
             }
         }
+
+        // Add further stages as needed, e.g., API call, processing, etc.
     }
 }
