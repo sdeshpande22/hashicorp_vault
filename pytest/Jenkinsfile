@@ -1,3 +1,28 @@
+def promptForBasicAuthParams() {
+    def params = input(
+        id: 'basicAuthInput',
+        message: 'Provide Basic Authentication details',
+        parameters: [
+            string(name: 'USERNAME', defaultValue: '', description: 'Enter username for BasicAuth'),
+            password(name: 'PASSWORD', defaultValue: '', description: 'Enter password for BasicAuth'),
+            string(name: 'API_URL', defaultValue: '', description: 'Enter API URL')
+        ]
+    )
+    return params
+}
+
+def promptForTokenParams() {
+    def params = input(
+        id: 'tokenInput',
+        message: 'Provide Token Authentication details',
+        parameters: [
+            string(name: 'TOKEN', defaultValue: '', description: 'Enter token for Token authentication'),
+            string(name: 'API_URL', defaultValue: '', description: 'Enter API URL')
+        ]
+    )
+    return params
+}
+
 pipeline {
     agent any
     
@@ -16,26 +41,11 @@ pipeline {
                             )
                         ]
                     )
-
+                    
                     if (authMethod == 'BasicAuth') {
-                        input(
-                            id: 'basicAuthInput',
-                            message: 'Provide Basic Authentication details',
-                            parameters: [
-                                string(name: 'USERNAME', defaultValue: '', description: 'Enter username for BasicAuth'),
-                                password(name: 'PASSWORD', defaultValue: '', description: 'Enter password for BasicAuth'),
-                                string(name: 'API_URL', defaultValue: '', description: 'Enter API URL')
-                            ]
-                        )
+                        params = promptForBasicAuthParams()
                     } else if (authMethod == 'Token') {
-                        input(
-                            id: 'tokenInput',
-                            message: 'Provide Token Authentication details',
-                            parameters: [
-                                string(name: 'TOKEN', defaultValue: '', description: 'Enter token for Token authentication'),
-                                string(name: 'API_URL', defaultValue: '', description: 'Enter API URL')
-                            ]
-                        )
+                        params = promptForTokenParams()
                     }
                 }
             }
