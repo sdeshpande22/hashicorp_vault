@@ -1,56 +1,62 @@
 pipeline {
     agent any
-
-    parameters {
-        choice(name: 'AUTH_METHOD', choices: ['basic_auth', 'token'], description: 'Select the authentication method')
-    }
-
+    
     stages {
-        stage('Input Authentication Details') {
+        stage('Authentication Method') {
             steps {
                 script {
-                    if (params.AUTH_METHOD == 'basic_auth') {
-                        def basicAuthParams = input(
-                            id: 'basicAuthInput', message: 'Provide Basic Auth credentials and API URL', parameters: [
-                                string(name: 'USERNAME', defaultValue: '', description: 'Enter the username'),
-                                password(name: 'PASSWORD', defaultValue: '', description: 'Enter the password'),
-                                string(name: 'API_URL', defaultValue: '', description: 'Enter the API URL')
-                            ]
-                        )
-                        echo "Basic Auth selected"
-                        echo "Username: ${basicAuthParams.USERNAME}"
-                        echo "API URL: ${basicAuthParams.API_URL}"
-                        // Store the credentials in environment variables or handle them securely as needed
-                        env.USERNAME = basicAuthParams.USERNAME
-                        env.PASSWORD = basicAuthParams.PASSWORD
-                        env.API_URL = basicAuthParams.API_URL
+                    def authMethod = input(
+                        id: 'authMethod',
+                        message: 'Choose authentication method',
+                        parameters: [
+                            choice(
+                                name: 'AUTH_METHOD',
+                                choices: ['BasicAuth', 'Token'],
+                                description: 'Select authentication method'
+                            )
+                        ]
+                    )
 
-                    } else if (params.AUTH_METHOD == 'token') {
-                        def tokenAuthParams = input(
-                            id: 'tokenAuthInput', message: 'Provide Token and API URL', parameters: [
-                                string(name: 'TOKEN', defaultValue: '', description: 'Enter the token'),
-                                string(name: 'API_URL', defaultValue: '', description: 'Enter the API URL')
+                    if (authMethod == 'BasicAuth') {
+                        input(
+                            id: 'basicAuthInput',
+                            message: 'Provide Basic Authentication details',
+                            parameters: [
+                                string(name: 'USERNAME', defaultValue: '', description: 'Enter username for BasicAuth'),
+                                password(name: 'PASSWORD', defaultValue: '', description: 'Enter password for BasicAuth'),
+                                string(name: 'API_URL', defaultValue: '', description: 'Enter API URL')
                             ]
                         )
-                        echo "Token Auth selected"
-                        echo "Token: ${tokenAuthParams.TOKEN}"
-                        echo "API URL: ${tokenAuthParams.API_URL}"
-                        // Store the credentials in environment variables or handle them securely as needed
-                        env.TOKEN = tokenAuthParams.TOKEN
-                        env.API_URL = tokenAuthParams.API_URL
+                    } else if (authMethod == 'Token') {
+                        input(
+                            id: 'tokenInput',
+                            message: 'Provide Token Authentication details',
+                            parameters: [
+                                string(name: 'TOKEN', defaultValue: '', description: 'Enter token for Token authentication'),
+                                string(name: 'API_URL', defaultValue: '', description: 'Enter API URL')
+                            ]
+                        )
                     }
                 }
             }
         }
-        stage('Use Authentication Details') {
+        
+        stage('Configure') {
             steps {
                 script {
-                    if (params.AUTH_METHOD == 'basic_auth') {
-                        echo "Using Basic Auth with API URL: ${env.API_URL}"
-                        // Add steps to use USERNAME, PASSWORD, and API_URL
-                    } else if (params.AUTH_METHOD == 'token') {
-                        echo "Using Token Auth with API URL: ${env.API_URL}"
-                        // Add steps to use TOKEN and API_URL
+                    if (params.AUTH_METHOD == 'BasicAuth') {
+                        echo "Using Basic Authentication"
+                        echo "Username: ${params.USERNAME}"
+                        echo "Password: ${params.PASSWORD}"
+                        echo "API URL: ${params.API_URL}"
+                        // Add your steps using BasicAuth here
+                    } else if (params.AUTH_METHOD == 'Token') {
+                        echo "Using Token Authentication"
+                        echo "Token: ${params.TOKEN}"
+                        echo "API URL: ${params.API_URL}"
+                        // Add your steps using Token here
+                    } else {
+                        error "Invalid authentication method selected"
                     }
                 }
             }
