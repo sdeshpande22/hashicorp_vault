@@ -1,16 +1,28 @@
 pipeline {
     agent any
 
+    environment {
+        AUTH_METHOD = ''
+        USERNAME = ''
+        PASSWORD = ''
+        API_URL = ''
+        TOKEN = ''
+    }
+
     stages {
         stage('Select Authentication Method') {
             steps {
                 script {
+                    // Prompt user to select the authentication method
                     def authMethod = input message: 'Select Authentication Method',
                         parameters: [
                             choice(name: 'AUTH_METHOD', choices: ['BasicAuth', 'Token'], description: 'Choose the authentication method')
                         ]
 
-                    if (authMethod == 'BasicAuth') {
+                    env.AUTH_METHOD = authMethod
+
+                    if (env.AUTH_METHOD == 'BasicAuth') {
+                        // Prompt for BasicAuth credentials
                         def userInputs = input message: 'Provide BasicAuth Credentials',
                             parameters: [
                                 string(name: 'USERNAME', defaultValue: '', description: 'Enter your username'),
@@ -22,7 +34,8 @@ pipeline {
                         env.PASSWORD = userInputs.PASSWORD
                         env.API_URL = userInputs.API_URL
 
-                    } else if (authMethod == 'Token') {
+                    } else if (env.AUTH_METHOD == 'Token') {
+                        // Prompt for Token credentials
                         def tokenInputs = input message: 'Provide Token Credentials',
                             parameters: [
                                 password(name: 'TOKEN', defaultValue: '', description: 'Enter your token'),
@@ -42,11 +55,11 @@ pipeline {
                     if (env.AUTH_METHOD == 'BasicAuth') {
                         echo "Using BasicAuth"
                         echo "Username: ${env.USERNAME}"
-                        echo "Password: ${env.PASSWORD}" // For security, avoid echoing sensitive information like passwords
+                        // For security, avoid echoing sensitive information like passwords in real-world scenarios
                         echo "API URL: ${env.API_URL}"
                     } else if (env.AUTH_METHOD == 'Token') {
                         echo "Using Token"
-                        echo "Token: ${env.TOKEN}" // For security, avoid echoing sensitive information like tokens
+                        // For security, avoid echoing sensitive information like tokens in real-world scenarios
                         echo "API URL: ${env.API_URL}"
                     }
                 }
