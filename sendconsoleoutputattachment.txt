@@ -1,0 +1,39 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Build') {
+            steps {
+                script {
+                    // Simulating build steps
+                    echo 'Building...'
+                    echo 'Build successful!'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                // Capture the console output
+                def consoleOutput = currentBuild.rawBuild.getLog(1000).join("\n")
+
+                // Define the file path
+                def filePath = "${env.WORKSPACE}/consoleOutput.txt"
+
+                // Write the console output to a file
+                writeFile file: filePath, text: consoleOutput
+
+                // Send an email with the console output file attached
+                emailext (
+                    to: 'recipient@example.com',
+                    subject: "Jenkins Build ${currentBuild.fullDisplayName}",
+                    body: """<p>Build ${currentBuild.fullDisplayName} finished with status: ${currentBuild.currentResult}</p>
+                             <p>See the attached console output for details.</p>""",
+                    attachmentsPattern: 'consoleOutput.txt'
+                )
+            }
+        }
+    }
+}
