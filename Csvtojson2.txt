@@ -6,6 +6,9 @@ df = pd.read_csv('data.csv')
 # Specify the label to be outside
 outside_label = 'id'
 
+# Specify the column key to skip inside
+skip_column_key = 'age'
+
 # Create a dictionary to hold the data
 result = {}
 
@@ -13,7 +16,10 @@ result = {}
 for index, row in df.iterrows():
     # Create a dictionary for the current row
     entry = {'additional_key': 'additional_value'}  # Add additional key-value pairs here
-    entry.update(row)  # Add the row's data to the dictionary
+    # Add the row's data to the dictionary, excluding the specified column
+    for key, value in row.items():
+        if key != skip_column_key:
+            entry[key] = value
     result[row[outside_label]] = entry
 
 # Output the result
