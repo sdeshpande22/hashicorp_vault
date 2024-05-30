@@ -7,21 +7,18 @@ df = pd.read_csv('data.csv')
 outside_label = 'id'
 
 # Create a dictionary to hold the data
-result = []
+result = {}
 
 # Loop through each row in the DataFrame
 for index, row in df.iterrows():
     # Create a dictionary for the current row
-    entry = {outside_label: row[outside_label]}
-    result.append(entry)
+    entry = {'additional_key': 'additional_value'}  # Add additional key-value pairs here
+    entry.update(row)  # Add the row's data to the dictionary
+    result[row[outside_label]] = entry
 
-# Convert the result to JSON
-import json
-json_result = json.dumps(result, indent=4)
+# Output the result
+print(result)
 
-# Output the JSON
-print(json_result)
-
-# Optionally, write the JSON to a file
+# Optionally, write the result to a file
 with open('output.json', 'w') as f:
-    f.write(json_result)
+    json.dump(result, f, indent=4)
