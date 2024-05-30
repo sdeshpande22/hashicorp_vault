@@ -1,0 +1,27 @@
+import pandas as pd
+
+# Read the CSV file
+df = pd.read_csv('data.csv')
+
+# Specify the label to be outside
+outside_label = 'id'
+
+# Create a dictionary to hold the data
+result = []
+
+# Loop through each row in the DataFrame
+for index, row in df.iterrows():
+    # Create a dictionary for the current row
+    entry = {outside_label: row[outside_label]}
+    result.append(entry)
+
+# Convert the result to JSON
+import json
+json_result = json.dumps(result, indent=4)
+
+# Output the JSON
+print(json_result)
+
+# Optionally, write the JSON to a file
+with open('output.json', 'w') as f:
+    f.write(json_result)
