@@ -1,0 +1,1 @@
+Our current software ecosystem consists of several tightly coupled applications. These applications depend heavily on each other for data and functionality, leading to complex interdependencies. This tight coupling is causing several issues, including difficulty in making changes, slow deployment cycles, and increased risk of system failures
