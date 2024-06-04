@@ -1,0 +1,73 @@
+When speaking with security stakeholders about a monolithic application, it's important to gather comprehensive information to understand the security posture, potential risks, and mitigation strategies. Here are several queries that can help in obtaining this information:
+
+General Security Practices
+Security Policies and Procedures:
+
+What security policies and procedures are currently in place for the monolithic application?
+How often are these policies reviewed and updated?
+Compliance:
+
+Which regulatory compliance standards (e.g., GDPR, HIPAA, PCI-DSS) does the application need to adhere to?
+How is compliance monitored and maintained?
+Application Security
+Code Review and Testing:
+
+How frequently are code reviews conducted for security vulnerabilities?
+What kind of automated and manual security testing is performed (e.g., static code analysis, dynamic testing, penetration testing)?
+Dependency Management:
+
+How are third-party libraries and dependencies managed and monitored for vulnerabilities?
+Secure Coding Practices:
+
+What secure coding practices are followed by the development team?
+Are there guidelines or checklists that developers adhere to for writing secure code?
+Authentication and Authorization
+User Authentication:
+
+What authentication mechanisms are in place (e.g., single sign-on, multi-factor authentication)?
+How are user credentials stored and protected?
+Access Control:
+
+How is access control managed within the application?
+Are there role-based access controls (RBAC) or other access management frameworks implemented?
+Data Security
+Data Protection:
+
+How is sensitive data encrypted both in transit and at rest?
+What measures are in place to prevent data breaches and leaks?
+Database Security:
+
+What security measures are implemented to protect the database (e.g., encryption, access controls, monitoring)?
+Infrastructure Security
+Server and Network Security:
+
+How are servers and network components secured?
+What firewall and intrusion detection/prevention systems are in place?
+Patch Management:
+
+How are patches and updates managed for both the application and underlying infrastructure?
+Incident Response and Monitoring
+Incident Response Plan:
+
+Is there an incident response plan in place? If so, what does it entail?
+How are security incidents detected, reported, and resolved?
+Monitoring and Logging:
+
+What logging mechanisms are in place to monitor application activity and security events?
+How is log data analyzed and retained?
+Risk Management
+Risk Assessment:
+
+How often are security risk assessments conducted for the application?
+What methodologies are used for risk assessment?
+Threat Modeling:
+
+Is threat modeling conducted for the application? If so, what tools and techniques are used?
+Security Training and Awareness
+Security Training:
+What kind of security training is provided to developers and other stakeholders?
+How is security awareness promoted within the organization?
+Future Plans and Improvements
+Security Roadmap:
+Are there any planned security improvements or initiatives for the monolithic application?
+How does the organization plan to address emerging security threats and vulnerabilities?
