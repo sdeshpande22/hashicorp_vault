@@ -90,38 +90,29 @@ else:
 #########################################################################################################
 #############################Powershell############################################################################
 
-# Define the URL and credentials
+# Replace with your actual file path
+$file_path = "C:\path\to\your\file\archive.tgz"
+
+# URL for the upload endpoint
 $url = "https://<ADM-IP>/nitro/v2/config/ns_image?action=upload"
-$username = "<username>"
-$password = "<password>"
 
-# Define the file path
-$filePath = "C:\path\to\firmware\image.tgz"
-
-# Create headers
+# Create a hashtable for headers
 $headers = @{
-    "X-NITRO-USER" = $username
-    "X-NITRO-PASS" = $password
+    "Content-Type" = "multipart/form-data"
 }
 
-# Read the file content
-$fileContent = [System.IO.File]::ReadAllBytes($filePath)
+# Use Invoke-RestMethod to upload the file
+try {
+    $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -InFile $file_path
 
-# Define the multipart/form-data body
-$multipartContent = @{
-    ns_image = New-Object System.Net.Http.ByteArrayContent($fileContent)
-}
-$multipartContent.ns_image.Headers.Add("Content-Type", "application/octet-stream")
-$multipartContent.ns_image.Headers.Add("Content-Disposition", "form-data; name=`"ns_image`"; filename=`"$(Split-Path -Leaf $filePath)`"")
-
-# Make the POST request
-$response = Invoke-RestMethod -Uri $url -Headers $headers -Method Post -ContentType "multipart/form-data" -Body $multipartContent
-
-# Check for a successful response
-if ($response -ne $null) {
-    Write-Host "File uploaded successfully."
-} else {
-    Write-Host "Failed to upload file."
+    # Check the response
+    if ($response.StatusCode -eq 200) {
+        Write-Output "File uploaded successfully"
+    } else {
+        Write-Output "Failed to upload file. Status code: $($response.StatusCode)"
+    }
+} catch {
+    Write-Output "Error uploading file: $_"
 }
 
 
