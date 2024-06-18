@@ -1,0 +1,316 @@
+#########################################################################################################
+#########################################################################################################
+#############################################PYTHON###################################################
+
+
+import requests
+
+# Define the URL and credentials
+url = "https://<MGMT-IP>/nitro/v2/config/ns_upgrade"
+username = "<username>"
+password = "<password>"
+
+# Define headers
+headers = {
+    "Accept": "application/json",
+    "X-NITRO-USER": username,
+    "X-NITRO-PASS": password
+}
+
+# Make the GET request
+response = requests.get(url, headers=headers)
+
+# Check for a successful response
+if response.status_code == 200:
+    # Parse the JSON response
+    data = response.json()
+    print(data)
+else:
+    print(f"Failed to fetch data. Status code: {response.status_code}, Error: {response.text}")
+
+#########################################################################################################
+###################################POWERSHELL############################################################
+
+# Define the URL and credentials
+$url = "https://<MGMT-IP>/nitro/v2/config/ns_upgrade"
+$username = "<username>"
+$password = "<password>"
+
+# Create headers
+$headers = @{
+    "Accept" = "application/json"
+    "X-NITRO-USER" = $username
+    "X-NITRO-PASS" = $password
+}
+
+# Make the GET request
+$response = Invoke-RestMethod -Uri $url -Headers $headers -Method Get
+
+# Check if the response was successful
+if ($response -ne $null) {
+    $response | ConvertTo-Json
+} else {
+    Write-Host "Failed to fetch data."
+}
+#########################################################################################################
+#########################################################################################################
+2) "https://<ADM-IP>/nitro/v2/config/ns_image?action=upload"
+#########################################################################################################
+#############################python######################################################################
+import requests
+
+# Define the URL and credentials
+url = "https://<ADM-IP>/nitro/v2/config/ns_image?action=upload"
+username = "<username>"
+password = "<password>"
+
+# Define the file path and name
+file_path = "/path/to/firmware/image.tgz"
+
+# Define headers
+headers = {
+    "X-NITRO-USER": username,
+    "X-NITRO-PASS": password
+}
+
+# Open the file in binary mode
+with open(file_path, 'rb') as file_data:
+    files = {
+        'ns_image': (file_path, file_data, 'application/octet-stream')
+    }
+    
+    # Make the POST request
+    response = requests.post(url, headers=headers, files=files, verify=False)
+
+# Check for a successful response
+if response.status_code == 200:
+    print("File uploaded successfully.")
+else:
+    print(f"Failed to upload file. Status code: {response.status_code}, Error: {response.text}")
+#########################################################################################################
+#############################Powershell############################################################################
+
+# Define the URL and credentials
+$url = "https://<ADM-IP>/nitro/v2/config/ns_image?action=upload"
+$username = "<username>"
+$password = "<password>"
+
+# Define the file path
+$filePath = "C:\path\to\firmware\image.tgz"
+
+# Create headers
+$headers = @{
+    "X-NITRO-USER" = $username
+    "X-NITRO-PASS" = $password
+}
+
+# Read the file content
+$fileContent = [System.IO.File]::ReadAllBytes($filePath)
+
+# Define the multipart/form-data body
+$multipartContent = @{
+    ns_image = New-Object System.Net.Http.ByteArrayContent($fileContent)
+}
+$multipartContent.ns_image.Headers.Add("Content-Type", "application/octet-stream")
+$multipartContent.ns_image.Headers.Add("Content-Disposition", "form-data; name=`"ns_image`"; filename=`"$(Split-Path -Leaf $filePath)`"")
+
+# Make the POST request
+$response = Invoke-RestMethod -Uri $url -Headers $headers -Method Post -ContentType "multipart/form-data" -Body $multipartContent
+
+# Check for a successful response
+if ($response -ne $null) {
+    Write-Host "File uploaded successfully."
+} else {
+    Write-Host "Failed to upload file."
+}
+
+
+#########################################################################################################
+#########################################################################################################
+
+3) NS firmware upgrade job
+
+To create a firmware upgrade job for a NetScaler (NS) device using Citrix ADM (Application Delivery Management) via the NITRO API, you need to perform the following steps:
+
+Upload the firmware image to Citrix ADM.
+Create an upgrade job using the uploaded firmware image.
+Below are the steps and example scripts to achieve this in Python and PowerShell.
+
+Step 1: Upload the Firmware Image
+Use the scripts provided earlier to upload the firmware image to Citrix ADM.
+
+Step 2: Create the Firmware Upgrade Job
+
+
+import requests
+import json
+
+# Define the URL and credentials
+url = "https://<ADM-IP>/nitro/v2/config/ns_upgrade"
+username = "<username>"
+password = "<password>"
+
+# Define headers
+headers = {
+    "Content-Type": "application/json",
+    "X-NITRO-USER": username,
+    "X-NITRO-PASS": password
+}
+
+# Define the payload for the upgrade job
+payload = {
+    "ns_upgrade": {
+        "image_name": "image.tgz",
+        "cleanup_unsupported_policy": True,
+        "slack_profile": "default_slack",
+        "id": "unique_upgrade_id",
+        "do_cleanup": True,
+        "scheduleTimesEpoch": 1672531199000,  # Unix timestamp
+        "doc_file": "documentation.pdf",
+        "name": "MyUpgradeJob",
+        "do_backup": True,
+        "ns_ip_address_arr": [
+            "10.0.0.1",
+            "10.0.0.2"
+        ],
+        "is_issu_enabled": True,
+        "mail_profiles": ["admin@example.com"],
+        "scheduleId": "schedule_123",
+        "post_upgrade_script": "post_upgrade.sh",
+        "is_post_upgrade_pre_failover_script_selected": True,
+        "saveconfig_enabled": True,
+        "pre_upgrade_script": "pre_upgrade.sh",
+        "adc_cloud_image_version": "13.0-47.24",
+        "issu_migration_timeout": 120,
+        "is_post_upgrade_script_selected": True,
+        "device_groups": ["group1", "group2"],
+        "is_remote_download": True,
+        "post_upgrade_pre_failover_script": "pre_failover.sh",
+        "ha_two_phase_upgrade": True,
+        "second_failover_enabled": True,
+        "is_pre_post_upgrade_script_same": True,
+        "ha_node2_devices": ["node2_device1", "node2_device2"],
+        "adc_cloud_image_id": "cloud_image_001",
+        "is_pre_upgrade_script_selected": True,
+        "scheduleTimesEpoch2": 1672531199000,  # Unix timestamp
+        "is_pre_post_upgrade_pre_failover_script_same": True,
+        "act_id": "action_001",
+        "tasklog_id": "tasklog_001"
+    }
+}
+
+# Convert payload to JSON format
+payload_json = json.dumps(payload)
+
+# Make the POST request to create the upgrade job
+response = requests.post(url, headers=headers, data=payload_json, verify=False)
+
+# Check for a successful response
+if response.status_code == 201:
+    print("Upgrade job created successfully.")
+else:
+    print(f"Failed to create upgrade job. Status code: {response.status_code}, Error: {response.text}")
+
+#########################################################################################################
+
+# Define the URL and credentials
+$url = "https://<ADM-IP>/nitro/v2/config/ns_upgrade"
+$username = "<username>"
+$password = "<password>"
+
+# Create headers
+$headers = @{
+    "Content-Type" = "application/json"
+    "X-NITRO-USER" = $username
+    "X-NITRO-PASS" = $password
+}
+
+# Define the payload for the upgrade job
+$payload = @{
+    ns_upgrade = @{
+        image_name = "image.tgz"
+        cleanup_unsupported_policy = $true
+        slack_profile = "default_slack"
+        id = "unique_upgrade_id"
+        do_cleanup = $true
+        scheduleTimesEpoch = 1672531199000  # Unix timestamp
+        doc_file = "documentation.pdf"
+        name = "MyUpgradeJob"
+        do_backup = $true
+        ns_ip_address_arr = @("10.0.0.1", "10.0.0.2")
+        is_issu_enabled = $true
+        mail_profiles = @("admin@example.com")
+        scheduleId = "schedule_123"
+        post_upgrade_script = "post_upgrade.sh"
+        is_post_upgrade_pre_failover_script_selected = $true
+        saveconfig_enabled = $true
+        pre_upgrade_script = "pre_upgrade.sh"
+        adc_cloud_image_version = "13.0-47.24"
+        issu_migration_timeout = 120
+        is_post_upgrade_script_selected = $true
+        device_groups = @("group1", "group2")
+        is_remote_download = $true
+        post_upgrade_pre_failover_script = "pre_failover.sh"
+        ha_two_phase_upgrade = $true
+        second_failover_enabled = $true
+        is_pre_post_upgrade_script_same = $true
+        ha_node2_devices = @("node2_device1", "node2_device2")
+        adc_cloud_image_id = "cloud_image_001"
+        is_pre_upgrade_script_selected = $true
+        scheduleTimesEpoch2 = 1672531199000  # Unix timestamp
+        is_pre_post_upgrade_pre_failover_script_same = $true
+        act_id = "action_001"
+        tasklog_id = "tasklog_001"
+    }
+}
+
+# Convert payload to JSON format
+$payload_json = $payload | ConvertTo-Json -Depth 10
+
+# Make the POST request to create the upgrade job
+$response = Invoke-RestMethod -Uri $url -Headers $headers -Method Post -Body $payload_json
+
+# Check if the response was successful
+if ($response -ne $null) {
+    Write-Host "Upgrade job created successfully."
+} else {
+    Write-Host "Failed to create upgrade job."
+}
+
+#########################################################################################################
+######pre_upgrade.sh#####################################################################################
+#!/bin/bash
+set snmp trap HA-state-change disable
+set snmp trap HA-NO-Heartbeats disable
+#########################################################################################################
+chmod +x /path/to/pre_upgrade.sh
+
+
+
+#########################################################################################################
+#########################################################################################################
+
+# Example PowerShell script to download files from Citrix ADC using SCP
+
+# Define ADC SSH credentials
+$adc_ip = "192.168.1.1"
+$username = "adc_username"
+$password = "adc_password"
+
+# Define remote and local paths
+$remote_files = @(
+    "/nsconfig/ns.conf",
+    "/nsconfig/ntp.conf",
+    "/nsconfig/ssl"  # Assuming this is a directory
+)
+
+# Local path where files will be downloaded
+$local_path = "C:\Local\Path\"
+
+# Download each file or directory using SCP
+foreach ($remote_file in $remote_files) {
+    $local_file_path = Join-Path -Path $local_path -ChildPath (Split-Path $remote_file -Leaf)
+    $scp_command = "pscp -pw $password $username@$adc_ip:`'$remote_file`' `'$local_file_path`'"
+    Invoke-Expression $scp_command
+    Write-Host "Downloaded $remote_file to $local_file_path"
+}
