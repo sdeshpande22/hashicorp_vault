@@ -1,11 +1,13 @@
 $file_path = "C:\path\to\your\file\largefile.tar.gz"
+$admIp = "<ADM-IP>"
 
-# URL for the upload endpoint
-$url = "https://<ADM-IP>/nitro/v2/config/ns_image?action=upload"
+# URL for the authentication and upload endpoints
+$authUrl = "https://$admIp/nitro/v2/config/login"
+$uploadUrl = "https://$admIp/nitro/v2/config/ns_image?action=upload"
 
-# Credentials for headers
-$nitroUser = "your-username"
-$nitroPassword = "your-password"
+# Credentials for authentication
+$username = "your-username"
+$password = "your-password"
 
 # Function to report progress
 function Report-Progress {
@@ -19,20 +21,46 @@ function Report-Progress {
 }
 
 try {
-    # Retrieve file size for progress calculation
+    # Step 1: Authenticate and Obtain Session ID
+    $authBody = @{
+        username = $username
+        password = $password
+    } | ConvertTo-Json
+
+    # Create HttpClient for authentication
+    $authClient = New-Object System.Net.Http.HttpClient
+    $authContent = New-Object System.Net.Http.StringContent($authBody, [System.Text.Encoding]::UTF8, "application/json")
+
+    # Send authentication request
+    $authResponse = $authClient.PostAsync($authUrl, $authContent).Result
+    $authResponseContent = $authResponse.Content.ReadAsStringAsync().Result
+
+    # Parse session ID from response
+    $authResponseJson = $authResponseContent | ConvertFrom-Json
+    $sessionId = $authResponseJson.sessionid
+
+    # Dispose of auth client
+    $authClient.Dispose()
+
+    if ($null -eq $sessionId) {
+        Write-Output "Failed to obtain session ID. Response: $authResponseContent"
+        exit
+    }
+
+    Write-Output "Obtained session ID: $sessionId"
+
+    # Step 2: Upload File Using Session ID
     $fileSize = (Get-Item $file_path).Length
-    $totalBytesRead = 0
 
     # Prepare headers
     $headers = @{
-        "X-Nitro-User" = $nitroUser
-        "X-Nitro-Password" = $nitroPassword
+        "X-Nitro-User" = $username
+        "X-Nitro-Password" = $password
+        "Cookie" = "NITRO_AUTH_TOKEN=$sessionId"
     }
 
-    # Create HttpClient
+    # Create HttpClient for file upload
     $httpClient = New-Object System.Net.Http.HttpClient
-
-    # Create MultipartFormDataContent
     $multipartContent = New-Object System.Net.Http.MultipartFormDataContent
 
     # Open file stream
@@ -47,27 +75,26 @@ try {
     $multipartContent.Add($streamContent)
 
     # Create HttpRequestMessage
-    $requestMessage = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Post, $url)
+    $requestMessage = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Post, $uploadUrl)
     $requestMessage.Content = $multipartContent
     foreach ($header in $headers.GetEnumerator()) {
         $requestMessage.Headers.Add($header.Key, $header.Value)
     }
 
     # Log the request details
-    Write-Output "Sending request to $url"
+    Write-Output "Sending request to $uploadUrl"
     Write-Output "Headers: $headers"
     Write-Output "File: $file_path"
     Write-Output "File size: $fileSize bytes"
 
     # Send the request
     $response = $httpClient.SendAsync($requestMessage, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
+    $responseContent = $response.Content.ReadAsStringAsync().Result
 
     # Log response details for debugging
-    $responseContent = $response.Content.ReadAsStringAsync().Result
     Write-Output "Response status code: $($response.StatusCode)"
     Write-Output "Response content: $responseContent"
 
-    # Handle response
     if ($response.IsSuccessStatusCode) {
         Write-Output "File uploaded successfully"
     } else {
