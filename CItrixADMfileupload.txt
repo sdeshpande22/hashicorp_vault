@@ -5,12 +5,20 @@ $file_path = "C:\path\to\your\file\archive.tgz"
 # URL for the upload endpoint
 $url = "https://<ADM-IP>/nitro/v2/config/ns_image?action=upload"
 
+# Credentials for headers
+$nitroUser = "your-username"
+$nitroPassword = "your-password"
+
 # Create a custom HttpClientHandler to ignore SSL certificate errors
 $handler = New-Object System.Net.Http.HttpClientHandler
 $handler.ServerCertificateCustomValidationCallback = { $true }
 
 # Create a HttpClient instance with the custom handler
 $httpClient = New-Object System.Net.Http.HttpClient($handler)
+
+# Add custom headers to the HttpClient
+$httpClient.DefaultRequestHeaders.Add("X-Nitro-User", $nitroUser)
+$httpClient.DefaultRequestHeaders.Add("X-Nitro-Password", $nitroPassword)
 
 # Create a MultipartFormDataContent object
 $multipartContent = New-Object System.Net.Http.MultipartFormDataContent
