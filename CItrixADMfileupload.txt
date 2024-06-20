@@ -1,4 +1,4 @@
-$file_path = "C:\path\to\your\file\archive.tgz"
+$file_path = "C:\path\to\your\file\largefile.tar.gz"
 
 # URL for the upload endpoint
 $url = "https://<ADM-IP>/nitro/v2/config/ns_image?action=upload"
@@ -7,76 +7,40 @@ $url = "https://<ADM-IP>/nitro/v2/config/ns_image?action=upload"
 $nitroUser = "your-username"
 $nitroPassword = "your-password"
 
-# Create a hashtable for headers
-$headers = @{
-    "X-Nitro-User" = $nitroUser
-    "X-Nitro-Password" = $nitroPassword
-    "Content-Type" = "multipart/form-data"
-}
-
-# Set the security protocol to TLS 1.2
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-# Retrieve file size for progress calculation
-$fileSize = (Get-Item $file_path).Length
-$bytesRead = 0
-
 # Function to report progress
 function Report-Progress {
     param (
-        [int]$BytesTransferred
+        [int64]$BytesTransferred,
+        [int64]$TotalBytes
     )
 
-    $percentComplete = ($BytesTransferred / $fileSize) * 100
+    $percentComplete = ($BytesTransferred / $TotalBytes) * 100
     Write-Progress -Activity "Uploading File" -Status "Progress: $($percentComplete.ToString("F2"))% Complete" -PercentComplete $percentComplete
 }
 
-# Create the multipart form data content
-$boundary = [System.Guid]::NewGuid().ToString()
-$LF = "`r`n"
-$fileName = [System.IO.Path]::GetFileName($file_path)
-$fileContent = [System.IO.File]::ReadAllBytes($file_path)
-$bodyLines = @(
-    "--$boundary",
-    "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"",
-    "Content-Type: application/gzip",
-    ""
-)
-$body = $bodyLines -join $LF
-$bodyEnd = $LF + "--$boundary--" + $LF
-$headers["Content-Type"] = "multipart/form-data; boundary=$boundary"
-
-# Use Invoke-RestMethod to upload the file
 try {
-    $requestStream = [System.IO.MemoryStream]::new()
-    $requestStream.Write([System.Text.Encoding]::UTF8.GetBytes($body), 0, $body.Length)
-    $fileStream = [System.IO.File]::OpenRead($file_path)
+    # Retrieve file size for progress calculation
+    $fileSize = (Get-Item $file_path).Length
+    $bytesUploaded = 0
 
-    $buffer = New-Object byte[] 10KB
-    $bytesRead = $fileStream.Read($buffer, 0, $buffer.Length)
-    while ($bytesRead -gt 0) {
-        $requestStream.Write($buffer, 0, $bytesRead)
-        Report-Progress -BytesTransferred $requestStream.Length
-        $bytesRead = $fileStream.Read($buffer, 0, $buffer.Length)
+    # Create a WebClient object for uploading
+    $webClient = New-Object System.Net.WebClient
+    $webClient.Headers.Add("X-Nitro-User", $nitroUser)
+    $webClient.Headers.Add("X-Nitro-Password", $nitroPassword)
+
+    # Event handler for upload progress
+    $webClient.UploadProgressChanged += {
+        param([object]$sender, [System.Net.UploadProgressChangedEventArgs]$e)
+        Report-Progress -BytesTransferred $e.BytesSent -TotalBytes $e.TotalBytesToSend
     }
-    $fileStream.Dispose()
 
-    $requestStream.Write([System.Text.Encoding]::UTF8.GetBytes($bodyEnd), 0, $bodyEnd.Length)
-    $requestStream.Position = 0
+    # Upload the file
+    $responseBytes = $webClient.UploadFile($url, $file_path)
+    
+    # Dispose WebClient object
+    $webClient.Dispose()
 
-    $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -ContentType "multipart/form-data; boundary=$boundary" -InFile $requestStream -Verbose
-
-    # Check the response
-    if ($response.StatusCode -eq 200) {
-        Write-Output "File uploaded successfully"
-    } else {
-        Write-Output "Failed to upload file. Status code: $($response.StatusCode)"
-    }
+    Write-Output "File uploaded successfully"
 } catch {
     Write-Output "Error uploading file: $_"
-} finally {
-    # Dispose of the request stream
-    if ($requestStream) {
-        $requestStream.Dispose()
-    }
 }
