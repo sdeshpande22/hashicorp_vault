@@ -1,0 +1,35 @@
+$file_path = "C:\path\to\your\file\archive.tgz"
+
+# URL for the upload endpoint
+$url = "https://<ADM-IP>/nitro/v2/config/ns_image?action=upload"
+
+# Create a hashtable for headers
+$headers = @{
+    "Content-Type" = "multipart/form-data"
+}
+
+# Set the security protocol to TLS 1.2
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+# Read the file content
+$fileContent = [System.IO.File]::ReadAllBytes($file_path)
+
+# Create a form for the multipart/form-data request
+$form = @{
+    "file" = New-Object System.Net.Http.ByteArrayContent($fileContent)
+}
+$form["file"].Headers.Add("Content-Disposition", "form-data; name=`"file`"; filename=`"$(Split-Path $file_path -Leaf)`"")
+
+# Use Invoke-RestMethod to upload the file
+try {
+    $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $form -ContentType "multipart/form-data" -Verbose
+
+    # Check the response
+    if ($response.StatusCode -eq 200) {
+        Write-Output "File uploaded successfully"
+    } else {
+        Write-Output "Failed to upload file. Status code: $($response.StatusCode)"
+    }
+} catch {
+    Write-Output "Error uploading file: $_"
+}
