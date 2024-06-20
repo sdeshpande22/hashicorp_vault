@@ -90,7 +90,6 @@ else:
 #########################################################################################################
 #############################Powershell############################################################################
 
-# Replace with your actual file path
 $file_path = "C:\path\to\your\file\archive.tgz"
 
 # URL for the upload endpoint
@@ -101,9 +100,12 @@ $headers = @{
     "Content-Type" = "multipart/form-data"
 }
 
+# Set the security protocol to TLS 1.2
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 # Use Invoke-RestMethod to upload the file
 try {
-    $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -InFile $file_path
+    $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -InFile $file_path -Verbose
 
     # Check the response
     if ($response.StatusCode -eq 200) {
@@ -114,6 +116,7 @@ try {
 } catch {
     Write-Output "Error uploading file: $_"
 }
+
 
 
 #########################################################################################################
