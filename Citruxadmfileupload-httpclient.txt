@@ -53,15 +53,26 @@ try {
         $requestMessage.Headers.Add($header.Key, $header.Value)
     }
 
+    # Log the request details
+    Write-Output "Sending request to $url"
+    Write-Output "Headers: $headers"
+    Write-Output "File: $file_path"
+    Write-Output "File size: $fileSize bytes"
+
     # Send the request
     $response = $httpClient.SendAsync($requestMessage, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
+
+    # Log response details for debugging
+    $responseContent = $response.Content.ReadAsStringAsync().Result
+    Write-Output "Response status code: $($response.StatusCode)"
+    Write-Output "Response content: $responseContent"
 
     # Handle response
     if ($response.IsSuccessStatusCode) {
         Write-Output "File uploaded successfully"
     } else {
         Write-Output "Failed to upload file. Status code: $($response.StatusCode)"
-        Write-Output "Response content: $($response.Content.ReadAsStringAsync().Result)"
+        Write-Output "Response content: $responseContent"
     }
 } catch {
     Write-Output "Error uploading file: $_"
