@@ -23,24 +23,49 @@ try {
     $fileSize = (Get-Item $file_path).Length
     $bytesUploaded = 0
 
-    # Create a WebClient object for uploading
-    $webClient = New-Object System.Net.WebClient
-    $webClient.Headers.Add("X-Nitro-User", $nitroUser)
-    $webClient.Headers.Add("X-Nitro-Password", $nitroPassword)
-
-    # Event handler for upload progress
-    $webClient.UploadProgressChanged += {
-        param([object]$sender, [System.Net.UploadProgressChangedEventArgs]$e)
-        Report-Progress -BytesTransferred $e.BytesSent -TotalBytes $e.TotalBytesToSend
+    # Prepare headers
+    $headers = @{
+        "X-Nitro-User" = $nitroUser
+        "X-Nitro-Password" = $nitroPassword
     }
 
-    # Upload the file
-    $responseBytes = $webClient.UploadFile($url, $file_path)
-    
-    # Dispose WebClient object
-    $webClient.Dispose()
+    # Open file stream and BinaryReader
+    $fileStream = [System.IO.File]::OpenRead($file_path)
+    $binaryReader = New-Object System.IO.BinaryReader($fileStream)
+
+    # Chunk size for reading file (adjust as necessary)
+    $chunkSize = 1MB
+    $buffer = New-Object byte[] $chunkSize
+
+    # Initialize variables for progress tracking
+    $totalBytesRead = 0
+    $totalBytesToSend = $fileSize
+
+    # Loop through file and upload in chunks
+    while ($totalBytesRead -lt $fileSize) {
+        # Read chunk from file
+        $bytesRead = $binaryReader.Read($buffer, 0, $chunkSize)
+
+        # Prepare body content (convert bytes to Base64)
+        $body = [System.Convert]::ToBase64String($buffer, 0, $bytesRead)
+
+        # Calculate progress
+        $totalBytesRead += $bytesRead
+        Report-Progress -BytesTransferred $totalBytesRead -TotalBytes $totalBytesToSend
+
+        # Invoke-WebRequest to upload chunk
+        $response = Invoke-WebRequest -Uri $url -Method Post -Headers $headers -ContentType "application/octet-stream" -Body $body -TimeoutSec 3600
+    }
+
+    # Close file stream and BinaryReader
+    $fileStream.Close()
+    $binaryReader.Close()
 
     Write-Output "File uploaded successfully"
 } catch {
     Write-Output "Error uploading file: $_"
+} finally {
+    # Dispose of file stream and BinaryReader if still open
+    if ($fileStream) { $fileStream.Dispose() }
+    if ($binaryReader) { $binaryReader.Dispose() }
 }
