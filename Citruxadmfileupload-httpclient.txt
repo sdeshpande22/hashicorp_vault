@@ -1,0 +1,72 @@
+$file_path = "C:\path\to\your\file\largefile.tar.gz"
+
+# URL for the upload endpoint
+$url = "https://<ADM-IP>/nitro/v2/config/ns_image?action=upload"
+
+# Credentials for headers
+$nitroUser = "your-username"
+$nitroPassword = "your-password"
+
+# Function to report progress
+function Report-Progress {
+    param (
+        [int64]$BytesTransferred,
+        [int64]$TotalBytes
+    )
+
+    $percentComplete = ($BytesTransferred / $TotalBytes) * 100
+    Write-Progress -Activity "Uploading File" -Status "Progress: $($percentComplete.ToString("F2"))% Complete" -PercentComplete $percentComplete
+}
+
+try {
+    # Retrieve file size for progress calculation
+    $fileSize = (Get-Item $file_path).Length
+    $totalBytesRead = 0
+
+    # Prepare headers
+    $headers = @{
+        "X-Nitro-User" = $nitroUser
+        "X-Nitro-Password" = $nitroPassword
+    }
+
+    # Create HttpClient
+    $httpClient = New-Object System.Net.Http.HttpClient
+
+    # Create MultipartFormDataContent
+    $multipartContent = New-Object System.Net.Http.MultipartFormDataContent
+
+    # Open file stream
+    $fileStream = [System.IO.File]::OpenRead($file_path)
+    $streamContent = New-Object System.Net.Http.StreamContent($fileStream)
+    $streamContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new("application/octet-stream")
+    $streamContent.Headers.ContentDisposition = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new("form-data")
+    $streamContent.Headers.ContentDisposition.Name = "file"
+    $streamContent.Headers.ContentDisposition.FileName = [System.IO.Path]::GetFileName($file_path)
+
+    # Add stream content to multipart content
+    $multipartContent.Add($streamContent)
+
+    # Create HttpRequestMessage
+    $requestMessage = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Post, $url)
+    $requestMessage.Content = $multipartContent
+    foreach ($header in $headers.GetEnumerator()) {
+        $requestMessage.Headers.Add($header.Key, $header.Value)
+    }
+
+    # Send the request
+    $response = $httpClient.SendAsync($requestMessage, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
+
+    # Handle response
+    if ($response.IsSuccessStatusCode) {
+        Write-Output "File uploaded successfully"
+    } else {
+        Write-Output "Failed to upload file. Status code: $($response.StatusCode)"
+        Write-Output "Response content: $($response.Content.ReadAsStringAsync().Result)"
+    }
+} catch {
+    Write-Output "Error uploading file: $_"
+} finally {
+    # Dispose of resources
+    if ($fileStream) { $fileStream.Dispose() }
+    if ($httpClient) { $httpClient.Dispose() }
+}
