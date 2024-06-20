@@ -11,18 +11,19 @@ $headers = @{
 # Set the security protocol to TLS 1.2
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-# Read the file content
-$fileContent = [System.IO.File]::ReadAllBytes($file_path)
+# Create the multipart/form-data content
+$fileBytes = [System.IO.File]::ReadAllBytes($file_path)
+$fileContent = [System.Net.Http.ByteArrayContent]::new($fileBytes)
+$fileContent.Headers.ContentDisposition = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new("form-data")
+$fileContent.Headers.ContentDisposition.Name = "file"
+$fileContent.Headers.ContentDisposition.FileName = [System.IO.Path]::GetFileName($file_path)
 
-# Create a form for the multipart/form-data request
-$form = @{
-    "file" = New-Object System.Net.Http.ByteArrayContent($fileContent)
-}
-$form["file"].Headers.Add("Content-Disposition", "form-data; name=`"file`"; filename=`"$(Split-Path $file_path -Leaf)`"")
+$multipartContent = [System.Net.Http.MultipartFormDataContent]::new()
+$multipartContent.Add($fileContent)
 
-# Use Invoke-RestMethod to upload the file
+# Use Invoke-WebRequest to upload the file
 try {
-    $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $form -ContentType "multipart/form-data" -Verbose
+    $response = Invoke-WebRequest -Uri $url -Method Post -Headers $headers -Body $multipartContent -Verbose
 
     # Check the response
     if ($response.StatusCode -eq 200) {
