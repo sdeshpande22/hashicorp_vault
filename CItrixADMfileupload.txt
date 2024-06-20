@@ -1,72 +1,75 @@
 $file_path = "C:\path\to\your\file\largefile.tar.gz"
+$admIp = "<ADM-IP>"
 
-# URL for the upload endpoint
-$url = "https://<ADM-IP>/nitro/v2/config/ns_image?action=upload"
+# URL for the authentication and upload endpoints
+$authUrl = "https://$admIp/nitro/v2/config/login"
+$uploadUrl = "https://$admIp/nitro/v2/config/ns_image?action=upload"
 
-# Credentials for headers
-$nitroUser = "your-username"
-$nitroPassword = "your-password"
-
-# Function to report progress
-function Report-Progress {
-    param (
-        [int64]$BytesTransferred,
-        [int64]$TotalBytes
-    )
-
-    $percentComplete = ($BytesTransferred / $TotalBytes) * 100
-    Write-Progress -Activity "Uploading File" -Status "Progress: $($percentComplete.ToString("F2"))% Complete" -PercentComplete $percentComplete
-}
+# Credentials for authentication
+$username = "your-username"
+$password = "your-password"
 
 try {
-    # Retrieve file size for progress calculation
+    # Step 1: Authenticate and Obtain Session ID
+    $authBody = @{
+        username = $username
+        password = $password
+    } | ConvertTo-Json
+
+    # Send authentication request
+    $authResponse = Invoke-WebRequest -Uri $authUrl -Method Post -Body $authBody -ContentType "application/json"
+    $authResponseJson = $authResponse.Content | ConvertFrom-Json
+    $sessionId = $authResponseJson.sessionid
+
+    if ($null -eq $sessionId) {
+        Write-Output "Failed to obtain session ID. Response: $($authResponse.Content)"
+        exit
+    }
+
+    Write-Output "Obtained session ID: $sessionId"
+
+    # Step 2: Upload File Using Session ID
     $fileSize = (Get-Item $file_path).Length
 
     # Prepare headers
     $headers = @{
-        "X-Nitro-User" = $nitroUser
-        "X-Nitro-Password" = $nitroPassword
+        "X-Nitro-User" = $username
+        "X-Nitro-Password" = $password
+        "Cookie" = "NITRO_AUTH_TOKEN=$sessionId"
     }
 
-    # Create a boundary for multipart content
+    # Create the file content
+    $fileContent = [System.IO.File]::ReadAllBytes($file_path)
+    $fileStream = [System.IO.MemoryStream]::new()
+    $fileStream.Write($fileContent, 0, $fileContent.Length)
+    $fileStream.Seek(0, [System.IO.SeekOrigin]::Begin)
+
+    # Create MultipartFormDataContent
     $boundary = [System.Guid]::NewGuid().ToString()
-    $LF = "`r`n"
-    $headers["Content-Type"] = "multipart/form-data; boundary=$boundary"
+    $multipartContent = "--$boundary`r`n"
+    $multipartContent += "Content-Disposition: form-data; name=`"file`"; filename=`"$(Split-Path $file_path -Leaf)`"`r`n"
+    $multipartContent += "Content-Type: application/octet-stream`r`n`r`n"
+    $multipartContent += [System.Text.Encoding]::UTF8.GetString($fileContent)
+    $multipartContent += "`r`n--$boundary--`r`n"
 
-    # Initialize FileStream for reading the file
-    $fileStream = [System.IO.File]::OpenRead($file_path)
+    # Convert multipart content to byte array
+    $multipartBytes = [System.Text.Encoding]::UTF8.GetBytes($multipartContent)
 
-    # Read the file in chunks and send it in parts
-    $chunkSize = 1MB
-    $buffer = New-Object byte[] $chunkSize
-    $bytesRead = 0
-    $totalBytesRead = 0
+    # Send the upload request
+    $uploadResponse = Invoke-WebRequest -Uri $uploadUrl -Method Post -Body $multipartBytes -Headers $headers -ContentType "multipart/form-data; boundary=$boundary"
 
-    while (($bytesRead = $fileStream.Read($buffer, 0, $chunkSize)) -gt 0) {
-        # Create the multipart content for the chunk
-        $chunkContent = (
-            "--$boundary$LF" +
-            "Content-Disposition: form-data; name=`"file`"; filename=`"$($file_path)`"$LF" +
-            "Content-Type: application/octet-stream$LF$LF" +
-            [System.Text.Encoding]::UTF8.GetString($buffer, 0, $bytesRead) + "$LF" +
-            "--$boundary--$LF"
-        )
+    # Log response details for debugging
+    Write-Output "Response status code: $($uploadResponse.StatusCode)"
+    Write-Output "Response content: $($uploadResponse.Content)"
 
-        # Upload the chunk
-        $response = Invoke-WebRequest -Uri $url -Method Post -Headers $headers -Body $chunkContent -Verbose
-
-        # Update total bytes read and report progress
-        $totalBytesRead += $bytesRead
-        Report-Progress -BytesTransferred $totalBytesRead -TotalBytes $fileSize
+    if ($uploadResponse.StatusCode -eq 200) {
+        Write-Output "File uploaded successfully"
+    } else {
+        Write-Output "Failed to upload file. Status code: $($uploadResponse.StatusCode)"
+        Write-Output "Response content: $($uploadResponse.Content)"
     }
-
-    # Close the FileStream
-    $fileStream.Close()
-
-    Write-Output "File uploaded successfully"
 } catch {
     Write-Output "Error uploading file: $_"
 } finally {
-    # Dispose of FileStream if still open
     if ($fileStream) { $fileStream.Dispose() }
 }
