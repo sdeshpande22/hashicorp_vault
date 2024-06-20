@@ -21,7 +21,6 @@ function Report-Progress {
 try {
     # Retrieve file size for progress calculation
     $fileSize = (Get-Item $file_path).Length
-    $bytesUploaded = 0
 
     # Prepare headers
     $headers = @{
@@ -29,43 +28,45 @@ try {
         "X-Nitro-Password" = $nitroPassword
     }
 
-    # Open file stream and BinaryReader
-    $fileStream = [System.IO.File]::OpenRead($file_path)
-    $binaryReader = New-Object System.IO.BinaryReader($fileStream)
+    # Create a boundary for multipart content
+    $boundary = [System.Guid]::NewGuid().ToString()
+    $LF = "`r`n"
+    $headers["Content-Type"] = "multipart/form-data; boundary=$boundary"
 
-    # Chunk size for reading file (adjust as necessary)
+    # Initialize FileStream for reading the file
+    $fileStream = [System.IO.File]::OpenRead($file_path)
+
+    # Read the file in chunks and send it in parts
     $chunkSize = 1MB
     $buffer = New-Object byte[] $chunkSize
-
-    # Initialize variables for progress tracking
+    $bytesRead = 0
     $totalBytesRead = 0
-    $totalBytesToSend = $fileSize
 
-    # Loop through file and upload in chunks
-    while ($totalBytesRead -lt $fileSize) {
-        # Read chunk from file
-        $bytesRead = $binaryReader.Read($buffer, 0, $chunkSize)
+    while (($bytesRead = $fileStream.Read($buffer, 0, $chunkSize)) -gt 0) {
+        # Create the multipart content for the chunk
+        $chunkContent = (
+            "--$boundary$LF" +
+            "Content-Disposition: form-data; name=`"file`"; filename=`"$($file_path)`"$LF" +
+            "Content-Type: application/octet-stream$LF$LF" +
+            [System.Text.Encoding]::UTF8.GetString($buffer, 0, $bytesRead) + "$LF" +
+            "--$boundary--$LF"
+        )
 
-        # Prepare body content (convert bytes to Base64)
-        $body = [System.Convert]::ToBase64String($buffer, 0, $bytesRead)
+        # Upload the chunk
+        $response = Invoke-WebRequest -Uri $url -Method Post -Headers $headers -Body $chunkContent -Verbose
 
-        # Calculate progress
+        # Update total bytes read and report progress
         $totalBytesRead += $bytesRead
-        Report-Progress -BytesTransferred $totalBytesRead -TotalBytes $totalBytesToSend
-
-        # Invoke-WebRequest to upload chunk
-        $response = Invoke-WebRequest -Uri $url -Method Post -Headers $headers -ContentType "application/octet-stream" -Body $body -TimeoutSec 3600
+        Report-Progress -BytesTransferred $totalBytesRead -TotalBytes $fileSize
     }
 
-    # Close file stream and BinaryReader
+    # Close the FileStream
     $fileStream.Close()
-    $binaryReader.Close()
 
     Write-Output "File uploaded successfully"
 } catch {
     Write-Output "Error uploading file: $_"
 } finally {
-    # Dispose of file stream and BinaryReader if still open
+    # Dispose of FileStream if still open
     if ($fileStream) { $fileStream.Dispose() }
-    if ($binaryReader) { $binaryReader.Dispose() }
 }
