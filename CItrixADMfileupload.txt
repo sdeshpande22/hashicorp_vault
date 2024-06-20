@@ -17,6 +17,20 @@ $headers = @{
 # Set the security protocol to TLS 1.2
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+# Retrieve file size for progress calculation
+$fileSize = (Get-Item $file_path).Length
+$bytesRead = 0
+
+# Function to report progress
+function Report-Progress {
+    param (
+        [int]$BytesTransferred
+    )
+
+    $percentComplete = ($BytesTransferred / $fileSize) * 100
+    Write-Progress -Activity "Uploading File" -Status "Progress: $($percentComplete.ToString("F2"))% Complete" -PercentComplete $percentComplete
+}
+
 # Create the multipart form data content
 $boundary = [System.Guid]::NewGuid().ToString()
 $LF = "`r`n"
@@ -26,16 +40,31 @@ $bodyLines = @(
     "--$boundary",
     "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"",
     "Content-Type: application/gzip",
-    "",
-    [System.Text.Encoding]::UTF8.GetString($fileContent),
-    "--$boundary--"
+    ""
 )
 $body = $bodyLines -join $LF
+$bodyEnd = $LF + "--$boundary--" + $LF
 $headers["Content-Type"] = "multipart/form-data; boundary=$boundary"
 
 # Use Invoke-RestMethod to upload the file
 try {
-    $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body -Verbose
+    $requestStream = [System.IO.MemoryStream]::new()
+    $requestStream.Write([System.Text.Encoding]::UTF8.GetBytes($body), 0, $body.Length)
+    $fileStream = [System.IO.File]::OpenRead($file_path)
+
+    $buffer = New-Object byte[] 10KB
+    $bytesRead = $fileStream.Read($buffer, 0, $buffer.Length)
+    while ($bytesRead -gt 0) {
+        $requestStream.Write($buffer, 0, $bytesRead)
+        Report-Progress -BytesTransferred $requestStream.Length
+        $bytesRead = $fileStream.Read($buffer, 0, $buffer.Length)
+    }
+    $fileStream.Dispose()
+
+    $requestStream.Write([System.Text.Encoding]::UTF8.GetBytes($bodyEnd), 0, $bodyEnd.Length)
+    $requestStream.Position = 0
+
+    $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -ContentType "multipart/form-data; boundary=$boundary" -InFile $requestStream -Verbose
 
     # Check the response
     if ($response.StatusCode -eq 200) {
@@ -45,4 +74,9 @@ try {
     }
 } catch {
     Write-Output "Error uploading file: $_"
+} finally {
+    # Dispose of the request stream
+    if ($requestStream) {
+        $requestStream.Dispose()
+    }
 }
