@@ -1,5 +1,3 @@
-Add-Type -AssemblyName System.Net.Http
-
 $file_path = "C:\path\to\your\file\archive.tgz"
 
 # URL for the upload endpoint
@@ -9,46 +7,42 @@ $url = "https://<ADM-IP>/nitro/v2/config/ns_image?action=upload"
 $nitroUser = "your-username"
 $nitroPassword = "your-password"
 
-# Create a custom HttpClientHandler to ignore SSL certificate errors
-$handler = New-Object System.Net.Http.HttpClientHandler
-$handler.ServerCertificateCustomValidationCallback = { $true }
+# Create a hashtable for headers
+$headers = @{
+    "X-Nitro-User" = $nitroUser
+    "X-Nitro-Password" = $nitroPassword
+    "Content-Type" = "multipart/form-data"
+}
 
-# Create a HttpClient instance with the custom handler
-$httpClient = New-Object System.Net.Http.HttpClient($handler)
+# Set the security protocol to TLS 1.2
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-# Add custom headers to the HttpClient
-$httpClient.DefaultRequestHeaders.Add("X-Nitro-User", $nitroUser)
-$httpClient.DefaultRequestHeaders.Add("X-Nitro-Password", $nitroPassword)
+# Create the multipart form data content
+$boundary = [System.Guid]::NewGuid().ToString()
+$LF = "`r`n"
+$fileName = [System.IO.Path]::GetFileName($file_path)
+$fileContent = [System.IO.File]::ReadAllBytes($file_path)
+$bodyLines = @(
+    "--$boundary",
+    "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"",
+    "Content-Type: application/gzip",
+    "",
+    [System.Text.Encoding]::UTF8.GetString($fileContent),
+    "--$boundary--"
+)
+$body = $bodyLines -join $LF
+$headers["Content-Type"] = "multipart/form-data; boundary=$boundary"
 
-# Create a MultipartFormDataContent object
-$multipartContent = New-Object System.Net.Http.MultipartFormDataContent
-
-# Create a FileStreamContent object for the file
-$fileStream = [System.IO.File]::OpenRead($file_path)
-$fileStreamContent = New-Object System.Net.Http.StreamContent($fileStream)
-$fileStreamContent.Headers.ContentDisposition = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new("form-data")
-$fileStreamContent.Headers.ContentDisposition.Name = '"file"'
-$fileStreamContent.Headers.ContentDisposition.FileName = '"' + [System.IO.Path]::GetFileName($file_path) + '"'
-$fileStreamContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new("application/gzip")
-
-# Add the file content to the multipart content
-$multipartContent.Add($fileStreamContent)
-
-# Send the request
+# Use Invoke-RestMethod to upload the file
 try {
-    $response = $httpClient.PostAsync($url, $multipartContent).Result
+    $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body -Verbose
 
     # Check the response
-    if ($response.IsSuccessStatusCode) {
+    if ($response.StatusCode -eq 200) {
         Write-Output "File uploaded successfully"
     } else {
         Write-Output "Failed to upload file. Status code: $($response.StatusCode)"
-        Write-Output "Response content: $($response.Content.ReadAsStringAsync().Result)"
     }
 } catch {
     Write-Output "Error uploading file: $_"
-} finally {
-    # Dispose of the file stream and HttpClient
-    $fileStream.Dispose()
-    $httpClient.Dispose()
 }
