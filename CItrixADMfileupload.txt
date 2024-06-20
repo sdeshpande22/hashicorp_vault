@@ -1,36 +1,46 @@
+Add-Type -AssemblyName System.Net.Http
+
 $file_path = "C:\path\to\your\file\archive.tgz"
 
 # URL for the upload endpoint
 $url = "https://<ADM-IP>/nitro/v2/config/ns_image?action=upload"
 
-# Create a hashtable for headers
-$headers = @{
-    "Content-Type" = "multipart/form-data"
-}
+# Create a custom HttpClientHandler to ignore SSL certificate errors
+$handler = New-Object System.Net.Http.HttpClientHandler
+$handler.ServerCertificateCustomValidationCallback = { $true }
 
-# Set the security protocol to TLS 1.2
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+# Create a HttpClient instance with the custom handler
+$httpClient = New-Object System.Net.Http.HttpClient($handler)
 
-# Create the multipart/form-data content
-$fileBytes = [System.IO.File]::ReadAllBytes($file_path)
-$fileContent = [System.Net.Http.ByteArrayContent]::new($fileBytes)
-$fileContent.Headers.ContentDisposition = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new("form-data")
-$fileContent.Headers.ContentDisposition.Name = "file"
-$fileContent.Headers.ContentDisposition.FileName = [System.IO.Path]::GetFileName($file_path)
+# Create a MultipartFormDataContent object
+$multipartContent = New-Object System.Net.Http.MultipartFormDataContent
 
-$multipartContent = [System.Net.Http.MultipartFormDataContent]::new()
-$multipartContent.Add($fileContent)
+# Create a FileStreamContent object for the file
+$fileStream = [System.IO.File]::OpenRead($file_path)
+$fileStreamContent = New-Object System.Net.Http.StreamContent($fileStream)
+$fileStreamContent.Headers.ContentDisposition = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new("form-data")
+$fileStreamContent.Headers.ContentDisposition.Name = '"file"'
+$fileStreamContent.Headers.ContentDisposition.FileName = '"' + [System.IO.Path]::GetFileName($file_path) + '"'
+$fileStreamContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new("application/gzip")
 
-# Use Invoke-WebRequest to upload the file
+# Add the file content to the multipart content
+$multipartContent.Add($fileStreamContent)
+
+# Send the request
 try {
-    $response = Invoke-WebRequest -Uri $url -Method Post -Headers $headers -Body $multipartContent -Verbose
+    $response = $httpClient.PostAsync($url, $multipartContent).Result
 
     # Check the response
-    if ($response.StatusCode -eq 200) {
+    if ($response.IsSuccessStatusCode) {
         Write-Output "File uploaded successfully"
     } else {
         Write-Output "Failed to upload file. Status code: $($response.StatusCode)"
+        Write-Output "Response content: $($response.Content.ReadAsStringAsync().Result)"
     }
 } catch {
     Write-Output "Error uploading file: $_"
+} finally {
+    # Dispose of the file stream and HttpClient
+    $fileStream.Dispose()
+    $httpClient.Dispose()
 }
