@@ -9,6 +9,9 @@ $uploadUrl = "https://$admIp/nitro/v2/config/ns_image?action=upload"
 $username = "your-username"
 $password = "your-password"
 
+# Chunk size in bytes (e.g., 5MB)
+$chunkSize = 5MB
+
 try {
     # Step 1: Authenticate and Obtain Session ID
     $authBody = @{
@@ -17,7 +20,7 @@ try {
     } | ConvertTo-Json
 
     # Send authentication request
-    $authResponse = Invoke-WebRequest -Uri $authUrl -Method Post -Body $authBody -ContentType "application/json"
+    $authResponse = Invoke-WebRequest -Uri $authUrl -Method Post -Body $authBody -ContentType "application/json" -UseBasicParsing
     $authResponseJson = $authResponse.Content | ConvertFrom-Json
     $sessionId = $authResponseJson.sessionid
 
@@ -28,46 +31,49 @@ try {
 
     Write-Output "Obtained session ID: $sessionId"
 
-    # Step 2: Upload File Using Session ID
-    $fileSize = (Get-Item $file_path).Length
+    # Step 2: Upload File in Chunks Using Session ID
+    $fileStream = [System.IO.File]::OpenRead($file_path)
+    $fileSize = $fileStream.Length
+    $totalChunks = [math]::Ceiling($fileSize / $chunkSize)
+    $buffer = New-Object byte[] $chunkSize
+    $chunkIndex = 0
 
-    # Prepare headers
-    $headers = @{
-        "X-Nitro-User" = $username
-        "X-Nitro-Password" = $password
-        "Cookie" = "NITRO_AUTH_TOKEN=$sessionId"
-    }
+    while ($bytesRead = $fileStream.Read($buffer, 0, $chunkSize)) {
+        $chunkIndex++
+        
+        # Prepare headers
+        $headers = @{
+            "Cookie" = "NITRO_AUTH_TOKEN=$sessionId"
+        }
 
-    # Create the file content
-    $fileContent = [System.IO.File]::ReadAllBytes($file_path)
-    $fileStream = [System.IO.MemoryStream]::new()
-    $fileStream.Write($fileContent, 0, $fileContent.Length)
-    $fileStream.Seek(0, [System.IO.SeekOrigin]::Begin)
+        # Prepare multipart form data
+        $boundary = [System.Guid]::NewGuid().ToString()
+        $multipartContent = "--$boundary`r`n"
+        $multipartContent += "Content-Disposition: form-data; name=`"file`"; filename=`"$(Split-Path $file_path -Leaf)`"`r`n"
+        $multipartContent += "Content-Type: application/octet-stream`r`n`r`n"
+        $multipartContent += [System.Text.Encoding]::UTF8.GetString($buffer, 0, $bytesRead)
+        $multipartContent += "`r`n--$boundary--`r`n"
 
-    # Create MultipartFormDataContent
-    $boundary = [System.Guid]::NewGuid().ToString()
-    $multipartContent = "--$boundary`r`n"
-    $multipartContent += "Content-Disposition: form-data; name=`"file`"; filename=`"$(Split-Path $file_path -Leaf)`"`r`n"
-    $multipartContent += "Content-Type: application/octet-stream`r`n`r`n"
-    $multipartContent += [System.Text.Encoding]::UTF8.GetString($fileContent)
-    $multipartContent += "`r`n--$boundary--`r`n"
+        # Convert multipart content to byte array
+        $multipartBytes = [System.Text.Encoding]::UTF8.GetBytes($multipartContent)
 
-    # Convert multipart content to byte array
-    $multipartBytes = [System.Text.Encoding]::UTF8.GetBytes($multipartContent)
+        # Send the chunk upload request
+        $uploadResponse = Invoke-WebRequest -Uri $uploadUrl -Method Post -Body $multipartBytes -Headers $headers -ContentType "multipart/form-data; boundary=$boundary" -UseBasicParsing
 
-    # Send the upload request
-    $uploadResponse = Invoke-WebRequest -Uri $uploadUrl -Method Post -Body $multipartBytes -Headers $headers -ContentType "multipart/form-data; boundary=$boundary"
-
-    # Log response details for debugging
-    Write-Output "Response status code: $($uploadResponse.StatusCode)"
-    Write-Output "Response content: $($uploadResponse.Content)"
-
-    if ($uploadResponse.StatusCode -eq 200) {
-        Write-Output "File uploaded successfully"
-    } else {
-        Write-Output "Failed to upload file. Status code: $($uploadResponse.StatusCode)"
+        # Log response details for debugging
+        Write-Output "Uploading chunk $chunkIndex/$totalChunks"
+        Write-Output "Response status code: $($uploadResponse.StatusCode)"
         Write-Output "Response content: $($uploadResponse.Content)"
+
+        if ($uploadResponse.StatusCode -ne 200) {
+            Write-Output "Failed to upload chunk $chunkIndex. Status code: $($uploadResponse.StatusCode)"
+            Write-Output "Response content: $($uploadResponse.Content)"
+            break
+        }
     }
+
+    Write-Output "File uploaded successfully in $chunkIndex chunks"
+
 } catch {
     Write-Output "Error uploading file: $_"
 } finally {
