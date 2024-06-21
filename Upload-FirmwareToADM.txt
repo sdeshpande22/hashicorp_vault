@@ -8,18 +8,14 @@ function Upload-FirmwareToADM {
         [string]$InFile
     )
 
-    # Initialize API endpoint and headers
     $uri = "$($ADMSession.Endpoint)/nitro/v1/config/$ResourceType"
     $boundary = [guid]::NewGuid().ToString()
     $APIProxyHeader = @{
         "Accept" = "*/*"
         "Cache-Control" = "no-cache"
-        "Content-type" = "application/json"
-        "Accept-Encoding" = "gzip, deflate, br"
         "rand_key" = $boundary
     }
 
-    # Prepare file upload parts
     $InFileName = (Get-Item $InFile).Name
     $bodyStart = @"
 --$boundary
@@ -36,10 +32,9 @@ Content-Type: application/x-compressed
 
 "@
     $bodyEnd = @"
---$boundary
+--$boundary--
 "@
 
-    # Write body to temporary file
     $TempFile = (Join-Path -Path $env:TEMP -ChildPath ([IO.Path]::GetRandomFileName()))
     $filestream = [System.IO.File]::Create($TempFile)
     try {
@@ -55,7 +50,6 @@ Content-Type: application/x-compressed
         $filestream.Close()
     }
 
-    # Make the REST API call
     $restParams = @{
         Uri = $uri
         ContentType = "multipart/form-data; boundary=$boundary"
@@ -72,11 +66,13 @@ Content-Type: application/x-compressed
         } else {
             Write-Verbose "Response:`n$(ConvertTo-Json $response | Out-String)"
         }
+    } catch {
+        throw $_
     } finally {
         Remove-Item -Path $TempFile -Force
     }
 }
 
 # Usage example:
-# $session = Connect-ADM -ADMHost "https://adm.domain.local" -Cred (Get-Credential)
-# Upload-FirmwareToADM -ADMSession $session -ResourceType "ns_images" -InFile "C:\path\to\firmware.tgz"
+$ADMSession = Connect-ADM -ADMHost "https://adm.domain.local" -Cred (Get-Credential)
+Upload-FirmwareToADM -ADMSession $ADMSession -ResourceType "ns_images" -InFile "C:\path\to\firmware.tgz"
