@@ -1,0 +1,82 @@
+function Upload-FirmwareToADM {
+    param (
+        [Parameter(Mandatory = $true)]
+        [PSObject]$ADMSession,
+        [Parameter(Mandatory = $true)]
+        [string]$ResourceType,
+        [Parameter(Mandatory = $true)]
+        [string]$InFile
+    )
+
+    # Initialize API endpoint and headers
+    $uri = "$($ADMSession.Endpoint)/nitro/v1/config/$ResourceType"
+    $boundary = [guid]::NewGuid().ToString()
+    $APIProxyHeader = @{
+        "Accept" = "*/*"
+        "Cache-Control" = "no-cache"
+        "Content-type" = "application/json"
+        "Accept-Encoding" = "gzip, deflate, br"
+        "rand_key" = $boundary
+    }
+
+    # Prepare file upload parts
+    $InFileName = (Get-Item $InFile).Name
+    $bodyStart = @"
+--$boundary
+Content-Disposition: form-data; name="NITRO_wEB_APPLICATION"
+
+true
+--$boundary
+Content-Disposition: form-data; name="rand_key"
+
+$boundary
+--$boundary
+Content-Disposition: form-data; name="$ResourceType"; filename="$InFileName"
+Content-Type: application/x-compressed
+
+"@
+    $bodyEnd = @"
+--$boundary
+"@
+
+    # Write body to temporary file
+    $TempFile = (Join-Path -Path $env:TEMP -ChildPath ([IO.Path]::GetRandomFileName()))
+    $filestream = [System.IO.File]::Create($TempFile)
+    try {
+        $bytes = [Text.Encoding]::UTF8.GetBytes($bodyStart)
+        $filestream.Write($bytes, 0, $bytes.Length)
+
+        $fileBytes = [System.IO.File]::ReadAllBytes($InFile)
+        $filestream.Write($fileBytes, 0, $fileBytes.Length)
+
+        $bytes = [Text.Encoding]::UTF8.GetBytes($bodyEnd)
+        $filestream.Write($bytes, 0, $bytes.Length)
+    } finally {
+        $filestream.Close()
+    }
+
+    # Make the REST API call
+    $restParams = @{
+        Uri = $uri
+        ContentType = "multipart/form-data; boundary=$boundary"
+        Method = "POST"
+        WebSession = $ADMSession.WebSession
+        Headers = $APIProxyHeader
+        InFile = $TempFile
+    }
+
+    try {
+        $response = Invoke-RestMethod @restParams
+        if ($response -and $response.severity -eq "ERROR") {
+            throw "Error. See response: `n$($response | fl * | Out-String)"
+        } else {
+            Write-Verbose "Response:`n$(ConvertTo-Json $response | Out-String)"
+        }
+    } finally {
+        Remove-Item -Path $TempFile -Force
+    }
+}
+
+# Usage example:
+# $session = Connect-ADM -ADMHost "https://adm.domain.local" -Cred (Get-Credential)
+# Upload-FirmwareToADM -ADMSession $session -ResourceType "ns_images" -InFile "C:\path\to\firmware.tgz"
