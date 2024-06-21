@@ -28,7 +28,7 @@ Content-Disposition: form-data; name="rand_key"
 $boundary
 --$boundary
 Content-Disposition: form-data; name="$ResourceType"; filename="$InFileName"
-Content-Type: application/x-compressed
+Content-Type: application/gzip
 
 "@
     $bodyEnd = @"
@@ -50,6 +50,10 @@ Content-Type: application/x-compressed
         $filestream.Close()
     }
 
+    # Read back the file content for debugging
+    $TempFileContent = [System.IO.File]::ReadAllText($TempFile)
+    Write-Output "TempFile Content for Debugging: `n$TempFileContent"
+
     $restParams = @{
         Uri = $uri
         ContentType = "multipart/form-data; boundary=$boundary"
@@ -60,6 +64,11 @@ Content-Type: application/x-compressed
     }
 
     try {
+        Write-Output "Making the API Request with following parameters:"
+        Write-Output "URI: $uri"
+        Write-Output "Headers: $(ConvertTo-Json $APIProxyHeader)"
+        Write-Output "Content-Type: multipart/form-data; boundary=$boundary"
+
         $response = Invoke-RestMethod @restParams
         if ($response -and $response.severity -eq "ERROR") {
             throw "Error. See response: `n$($response | fl * | Out-String)"
@@ -67,6 +76,7 @@ Content-Type: application/x-compressed
             Write-Verbose "Response:`n$(ConvertTo-Json $response | Out-String)"
         }
     } catch {
+        Write-Error "Exception occurred: $_"
         throw $_
     } finally {
         Remove-Item -Path $TempFile -Force
