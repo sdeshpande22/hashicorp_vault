@@ -14,6 +14,8 @@ function Upload-FirmwareToADM {
         "Accept" = "*/*"
         "Cache-Control" = "no-cache"
         "rand_key" = $boundary
+        "Content-type" = "application/json" 
+        "Accept-Encoding" = "gzip, deflate, br" 
     }
 
     $InFileName = (Get-Item $InFile).Name
