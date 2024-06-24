@@ -21,8 +21,15 @@ $username = "your_username"  # Replace with your ADM username
 $password = "your_password"  # Replace with your ADM password (consider secure handling)
 $remotePath = "/remote/path/"  # Replace with your desired remote path on ADM
 
-# Create the plink command
-$plinkCommand = "`"$pscpPath`" -pw `"$password`" `"$localFilePath`" $username@$admHostname:`"$remotePath`""
+# Use Plink to handle the password and create a session for pscp
+$plinkPath = "C:\path\to\plink.exe"  # Replace with the actual path to plink.exe
 
-# Start the plink process
-Start-Process -FilePath "cmd.exe" -ArgumentList "/c echo y | $plinkCommand" -Wait
+# Construct the plink command to echo the password and execute pscp
+$plinkCommand = "`"$plinkPath`" -pw `$password -batch -l `$username `$admHostname exit"
+
+# Construct the pscp command to upload the file
+$pscpCommand = "`"$pscpPath`" -batch -l `$username -pw `$password `$localFilePath`" `$admHostname:`"$remotePath`""
+
+# Execute the pscp command using Start-Process
+Start-Process -FilePath $pscpPath -ArgumentList ("-batch -l $username -pw $password $localFilePath $admHostname:$remotePath") -Wait
+
