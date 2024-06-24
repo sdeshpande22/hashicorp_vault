@@ -5,8 +5,10 @@ function Upload-ADMFileToNitro
         Upload a .tgz file to Citrix ADM.
     .DESCRIPTION
         This function uploads a .tgz file to Citrix ADM using the Nitro API.
-    .PARAMETER ADMSession
-        An existing custom ADM Neb Request Session object returned by Connect-ADM
+    .PARAMETER ADMHost
+        ADM Management address (e.g., https://adm.domain.local).
+    .PARAMETER Cred
+        Credential object to authenticate to ADM.
     .PARAMETER FilePath
         Path to the .tgz file to be uploaded.
     .PARAMETER ResourceType
@@ -14,12 +16,14 @@ function Upload-ADMFileToNitro
     .PARAMETER ResourceName
         Optional name of the resource.
     .EXAMPLE
-        Upload-ADMFileToNitro -ADMSession $Session -FilePath "C:\path\to\file.tgz" -ResourceType ns_image
+        Upload-ADMFileToNitro -ADMHost "https://adm.domain.local" -Cred $Credential -FilePath "C:\path\to\file.tgz" -ResourceType ns_images
     #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [PSObject]$ADMSession,
+        [string]$ADMHost,
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.PSCredential]$Cred,
         [Parameter(Mandatory = $true)]
         [ValidateScript({Test-Path $_ -PathType Leaf})]
         [string]$FilePath,
@@ -34,13 +38,29 @@ function Upload-ADMFileToNitro
 
     try
     {
-        # Generate a unique boundary string
-        $boundary = [guid]::NewGuid().ToString()
+        # Build login object
+        $loginObject = @{
+            "login" = @{
+                "username" = $Cred.UserName.Replace("\", "")
+                "password" = $Cred.GetNetworkCredential().Password
+            }
+        } | ConvertTo-Json
 
-        # Build payload for file upload
-        $Payload = @{
-            "NITRO_WEB_APPLICATION" = "true"
+        # Perform login to obtain session
+        $loginUri = "$ADMHost/nitro/v1/config/login"
+        $loginResponse = Invoke-RestMethod -Uri $loginUri -Body $loginObject -Method POST -ContentType "application/json"
+
+        # Check login response for errors
+        if ($loginResponse.severity -eq "ERROR")
+        {
+            throw "Error logging in to ADM. See response:`n$(ConvertTo-Json $loginResponse | Out-String)"
         }
+
+        # Extract session information
+        $session = $loginResponse.sessionid
+
+        # Generate boundary for multipart/form-data
+        $boundary = [guid]::NewGuid().ToString()
 
         # Prepare the multipart/form-data body
         $bodyStart = @"
@@ -61,29 +81,28 @@ Content-Type: application/x-compressed
 --$boundary--
 "@
 
-        # Call Invoke-ADMNitro with appropriate parameters
-        $response = Invoke-ADMNitro -ADMSession $ADMSession `
-                                    -OperationMethod POST `
-                                    -ResourceType $ResourceType `
-                                    -ResourceName $ResourceName `
-                                    -InFile $FilePath `
-                                    -ContentType "multipart/form-data; boundary=$boundary" `
-                                    -BodyStart $bodyStart `
-                                    -BodyEnd $bodyEnd `
-                                    -Payload $Payload
-
-        # Handle response if needed
-        if ($response)
-        {
-            if ($response.severity -eq "ERROR")
-            {
-                throw "Error. See response:`n$($response | Format-List * | Out-String)"
-            }
-            else
-            {
-                Write-Verbose "File uploaded successfully.`n$(ConvertTo-Json $response | Out-String)"
-            }
+        # Prepare headers
+        $headers = @{
+            "Cookie" = "sessionid=$session"
+            "Content-Type" = "multipart/form-data; boundary=$boundary"
         }
+
+        # Construct URI for file upload
+        $uploadUri = "$ADMHost/nitro/v1/$ResourceType/$ResourceName"
+
+        # Read file content
+        $fileContent = Get-Content -Path $FilePath -Raw
+
+        # Perform the file upload
+        $response = Invoke-RestMethod -Uri $uploadUri -Method POST -ContentType "multipart/form-data; boundary=$boundary" -Body ($bodyStart + $fileContent + $bodyEnd) -Headers $headers
+
+        # Check response for errors
+        if ($response.severity -eq "ERROR")
+        {
+            throw "Error uploading file to ADM. See response:`n$(ConvertTo-Json $response | Out-String)"
+        }
+
+        Write-Verbose "File uploaded successfully.`n$(ConvertTo-Json $response | Out-String)"
     }
     catch [Exception]
     {
