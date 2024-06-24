@@ -1,3 +1,52 @@
+# Define variables for SSH connection
+$serverIp = "your_Citrix_ADM_server_IP"
+$username = "your_username"
+
+# Define SSH port (typically 22 for SFTP)
+$port = 22
+
+# Create session options
+$sessionOptions = New-Object WinSCP.SessionOptions -Property @{
+    Protocol = [WinSCP.Protocol]::Sftp
+    HostName = $serverIp
+    UserName = $username
+    PortNumber = $port
+}
+
+try {
+    # Load WinSCP .NET assembly
+    Add-Type -Path "path\to\WinSCPnet.dll"
+
+    # Create session instance
+    $session = New-Object WinSCP.Session
+
+    try {
+        # Connect to retrieve SSH host key
+        $session.Open($sessionOptions)
+
+        # Retrieve SSH host key fingerprint
+        $hostKey = $session.ScanFingerprint()
+
+        Write-Host "SSH Host Key Fingerprint:"
+        Write-Host $hostKey
+    }
+    finally {
+        # Disconnect and clean up
+        $session.Dispose()
+    }
+
+    exit 0
+}
+catch {
+    Write-Host ("Error: {0}" -f $_.Exception.Message)
+    exit 1
+}
+####################################################################################################
+
+
+
+
+
 # Load WinSCP .NET assembly
 Add-Type -Path "path\to\WinSCPnet.dll"
 
