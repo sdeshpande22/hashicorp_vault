@@ -1,20 +1,68 @@
-# Fetch SSH host key fingerprint using ssh-keyscan
-$serverIp = "your_server_ip"
-$port = 22  # SSH port number (typically 22 for SFTP)
+#download
+# Load WinSCP .NET assembly
+Add-Type -Path "path\to\WinSCPnet.dll"
 
-$sshHostKeyFingerprint = & ssh-keyscan -t rsa -p $port $serverIp
+# Define variables for SSH connection
+$serverIp = "your_Citrix_ADM_server_IP"
+$username = "your_username"
+$password = "your_password"
 
-# Extract the fingerprint from the output
-$sshHostKeyFingerprint = ($sshHostKeyFingerprint -split " ")[2]
+# Define SSH port (typically 22 for SFTP)
+$port = 22
 
-Write-Host "SSH Host Key Fingerprint:"
-Write-Host $sshHostKeyFingerprint
+try {
+    # Create session options
+    $sessionOptions = New-Object WinSCP.SessionOptions -Property @{
+        Protocol = [WinSCP.Protocol]::Sftp
+        HostName = $serverIp
+        UserName = $username
+        Password = $password
+        PortNumber = $port
+        GiveUpSecurityAndAcceptAnySshHostKey = $true  # Accept any host key
+    }
+
+    # Create session instance
+    $session = New-Object WinSCP.Session
+
+    try {
+        # Connect to server
+        $session.Open($sessionOptions)
+
+        Write-Host "Connected to $serverIp"
+
+        # Define local directory path where files will be downloaded
+        $localPath = "C:\path\to\local\directory"
+
+        # Define remote directory path on Citrix ADM server
+        $remotePath = "/remote/directory/path"
+
+        # Set up transfer options
+        $transferOptions = New-Object WinSCP.TransferOptions
+        $transferOptions.TransferMode = [WinSCP.TransferMode]::Binary
+
+        # Download files from remote directory to local directory
+        $transferResult = $session.GetFiles($remotePath, $localPath, $False, $transferOptions)
+
+        # Check and handle errors
+        $transferResult.Check()
+
+        # Display success message
+        Write-Host ("Downloaded {0} files from {1} to {2}" -f $transferResult.Transfers.Count, $remotePath, $localPath)
+    }
+    finally {
+        # Disconnect and clean up session
+        $session.Dispose()
+    }
+
+    exit 0
+}
+catch {
+    Write-Host ("Error: {0}" -f $_.Exception.Message)
+    exit 1
+}
 
 ####################################################################################################
-
-
-
-
+#Upload
 
 # Load WinSCP .NET assembly
 Add-Type -Path "path\to\WinSCPnet.dll"
@@ -27,6 +75,8 @@ $sessionOptions = New-Object WinSCP.SessionOptions -Property @{
     Password = "your_password"
     # Comment out or remove the SshHostKeyFingerprint line if not available
     # SshHostKeyFingerprint = "your_ssh_host_key_fingerprint"
+    GiveUpSecurityAndAcceptAnySshHostKey = $true
+
 }
 
 try {
