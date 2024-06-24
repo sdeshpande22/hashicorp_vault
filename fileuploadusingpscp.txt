@@ -1,0 +1,12 @@
+# Define variables
+$pscpPath = "C:\path\to\pscp.exe"  # Replace with the actual path to pscp.exe
+$localFilePath = "C:\local\file.txt"  # Replace with the path to your local file
+$admHostname = "adm-server"  # Replace with your Citrix ADM hostname or IP address
+$username = "your_username"  # Replace with your ADM username
+$remotePath = "/remote/path/"  # Replace with your desired remote path on ADM
+
+# Construct the pscp command
+$command = "& `"$pscpPath`" `"$localFilePath`" $username@$admHostname:`"$remotePath`""
+
+# Execute pscp command using Start-Process
+Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command $command" -Wait
