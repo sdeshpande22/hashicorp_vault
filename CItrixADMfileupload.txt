@@ -1,81 +1,94 @@
-$file_path = "C:\path\to\your\file\largefile.tar.gz"
-$admIp = "<ADM-IP>"
+function Upload-ADMFileToNitro
+{
+    <#
+    .SYNOPSIS
+        Upload a .tgz file to Citrix ADM.
+    .DESCRIPTION
+        This function uploads a .tgz file to Citrix ADM using the Nitro API.
+    .PARAMETER ADMSession
+        An existing custom ADM Neb Request Session object returned by Connect-ADM
+    .PARAMETER FilePath
+        Path to the .tgz file to be uploaded.
+    .PARAMETER ResourceType
+        Type of the resource where the file will be uploaded (e.g., ns_images).
+    .PARAMETER ResourceName
+        Optional name of the resource.
+    .EXAMPLE
+        Upload-ADMFileToNitro -ADMSession $Session -FilePath "C:\path\to\file.tgz" -ResourceType ns_image
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [PSObject]$ADMSession,
+        [Parameter(Mandatory = $true)]
+        [ValidateScript({Test-Path $_ -PathType Leaf})]
+        [string]$FilePath,
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("ns_images", "other_supported_resource_types")]
+        [string]$ResourceType,
+        [Parameter(Mandatory = $false)]
+        [string]$ResourceName
+    )
 
-# URL for the authentication and upload endpoints
-$authUrl = "https://$admIp/nitro/v2/config/login"
-$uploadUrl = "https://$admIp/nitro/v2/config/ns_image?action=upload"
+    Write-Verbose "$($MyInvocation.MyCommand): Enter"
 
-# Credentials for authentication
-$username = "your-username"
-$password = "your-password"
+    try
+    {
+        # Generate a unique boundary string
+        $boundary = [guid]::NewGuid().ToString()
 
-# Chunk size in bytes (e.g., 5MB)
-$chunkSize = 5MB
-
-try {
-    # Step 1: Authenticate and Obtain Session ID
-    $authBody = @{
-        username = $username
-        password = $password
-    } | ConvertTo-Json
-
-    # Send authentication request
-    $authResponse = Invoke-WebRequest -Uri $authUrl -Method Post -Body $authBody -ContentType "application/json" -UseBasicParsing
-    $authResponseJson = $authResponse.Content | ConvertFrom-Json
-    $sessionId = $authResponseJson.sessionid
-
-    if ($null -eq $sessionId) {
-        Write-Output "Failed to obtain session ID. Response: $($authResponse.Content)"
-        exit
-    }
-
-    Write-Output "Obtained session ID: $sessionId"
-
-    # Step 2: Upload File in Chunks Using Session ID
-    $fileStream = [System.IO.File]::OpenRead($file_path)
-    $fileSize = $fileStream.Length
-    $totalChunks = [math]::Ceiling($fileSize / $chunkSize)
-    $buffer = New-Object byte[] $chunkSize
-    $chunkIndex = 0
-
-    while ($bytesRead = $fileStream.Read($buffer, 0, $chunkSize)) {
-        $chunkIndex++
-        
-        # Prepare headers
-        $headers = @{
-            "Cookie" = "NITRO_AUTH_TOKEN=$sessionId"
+        # Build payload for file upload
+        $Payload = @{
+            "NITRO_WEB_APPLICATION" = "true"
         }
 
-        # Prepare multipart form data
-        $boundary = [System.Guid]::NewGuid().ToString()
-        $multipartContent = "--$boundary`r`n"
-        $multipartContent += "Content-Disposition: form-data; name=`"file`"; filename=`"$(Split-Path $file_path -Leaf)`"`r`n"
-        $multipartContent += "Content-Type: application/octet-stream`r`n`r`n"
-        $multipartContent += [System.Text.Encoding]::UTF8.GetString($buffer, 0, $bytesRead)
-        $multipartContent += "`r`n--$boundary--`r`n"
+        # Prepare the multipart/form-data body
+        $bodyStart = @"
+--$boundary
+Content-Disposition: form-data; name="NITRO_WEB_APPLICATION"
 
-        # Convert multipart content to byte array
-        $multipartBytes = [System.Text.Encoding]::UTF8.GetBytes($multipartContent)
+true
+--$boundary
+Content-Disposition: form-data; name="rand_key"
 
-        # Send the chunk upload request
-        $uploadResponse = Invoke-WebRequest -Uri $uploadUrl -Method Post -Body $multipartBytes -Headers $headers -ContentType "multipart/form-data; boundary=$boundary" -UseBasicParsing
+$boundary
+--$boundary
+Content-Disposition: form-data; name="$ResourceType"; filename="$([System.IO.Path]::GetFileName($FilePath))"
+Content-Type: application/x-compressed
 
-        # Log response details for debugging
-        Write-Output "Uploading chunk $chunkIndex/$totalChunks"
-        Write-Output "Response status code: $($uploadResponse.StatusCode)"
-        Write-Output "Response content: $($uploadResponse.Content)"
+"@
+        $bodyEnd = @"
+--$boundary--
+"@
 
-        if ($uploadResponse.StatusCode -ne 200) {
-            Write-Output "Failed to upload chunk $chunkIndex. Status code: $($uploadResponse.StatusCode)"
-            Write-Output "Response content: $($uploadResponse.Content)"
-            break
+        # Call Invoke-ADMNitro with appropriate parameters
+        $response = Invoke-ADMNitro -ADMSession $ADMSession `
+                                    -OperationMethod POST `
+                                    -ResourceType $ResourceType `
+                                    -ResourceName $ResourceName `
+                                    -InFile $FilePath `
+                                    -ContentType "multipart/form-data; boundary=$boundary" `
+                                    -BodyStart $bodyStart `
+                                    -BodyEnd $bodyEnd `
+                                    -Payload $Payload
+
+        # Handle response if needed
+        if ($response)
+        {
+            if ($response.severity -eq "ERROR")
+            {
+                throw "Error. See response:`n$($response | Format-List * | Out-String)"
+            }
+            else
+            {
+                Write-Verbose "File uploaded successfully.`n$(ConvertTo-Json $response | Out-String)"
+            }
         }
     }
+    catch [Exception]
+    {
+        throw $_
+    }
 
-    Write-Output "File uploaded successfully in $chunkIndex chunks"
-
-} catch {
-    Write-Output "Error uploading file: $_"
-} finally {
-    if ($fileStream) { $fileStream.Dispose() }
+    Write-Verbose "$($MyInvocation.MyCommand): Exit"
 }
