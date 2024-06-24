@@ -32,4 +32,6 @@ $pscpCommand = "`"$pscpPath`" -batch -l `$username -pw `$password `$localFilePat
 
 # Execute the pscp command using Start-Process
 Start-Process -FilePath $pscpPath -ArgumentList ("-batch -l $username -pw $password $localFilePath $admHostname:$remotePath") -Wait
+#####################################################################################################################################
 
+plink -batch -pw your_password your_username@adm-server "pscp -pw your_password C:\local\file.txt your_username@adm-server:/remote/path/"
