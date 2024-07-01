@@ -11,3 +11,43 @@ for proc in psutil.process_iter(['pid', 'name', 'username']):
 # Display the processes
 for process in processes:
     print(f"PID: {process['pid']}, Name: {process['name']}, User: {process['username']}")
+
+
+#########################
+import psutil
+
+def get_subprocesses_by_name(parent_name):
+    """Return a list of subprocesses for a given parent process name."""
+    parent_processes = []
+    for proc in psutil.process_iter(['pid', 'name']):
+        if proc.info['name'] == parent_name:
+            parent_processes.append(proc)
+
+    if not parent_processes:
+        print(f"No process found with name: {parent_name}")
+        return []
+
+    subprocesses = []
+    for proc in psutil.process_iter(['pid', 'name', 'ppid', 'username']):
+        try:
+            parent = proc.parent()
+            if parent and parent.name() == parent_name:
+                subprocesses.append(proc.info)
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+
+    return subprocesses
+
+def main():
+    parent_name = input("Enter the name of the parent process: ")
+    subprocesses = get_subprocesses_by_name(parent_name)
+
+    if subprocesses:
+        print(f"Subprocesses of {parent_name}:")
+        for process in subprocesses:
+            print(f"PID: {process['pid']}, Name: {process['name']}, User: {process['username']}")
+    else:
+        print(f"No subprocesses found for {parent_name}")
+
+if __name__ == "__main__":
+    main()
