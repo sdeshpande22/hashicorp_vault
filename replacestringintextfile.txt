@@ -1,0 +1,26 @@
+# Define the file path, the string to find, and the string to replace
+$filePath = "C:\path\to\your\file.txt"
+$findString = "oldString"
+$replaceString = "newString"
+
+# Read the content of the file
+$content = Get-Content -Path $filePath
+
+# Check if the replace string already exists
+if ($content -match $replaceString) {
+    Write-Output "The replacement string already exists in the file. No replacement made."
+} else {
+    # Check if the string to find exists in the content
+    if ($content -match $findString) {
+        # Perform the replacement and count the number of replacements
+        $newContent = $content -replace $findString, $replaceString
+        $count = ([regex]::Matches($content, [regex]::Escape($findString))).Count
+        
+        # Write the new content back to the file
+        Set-Content -Path $filePath -Value $newContent
+        
+        Write-Output "String replaced $count times."
+    } else {
+        Write-Output "String to find not found. No replacement made."
+    }
+}
