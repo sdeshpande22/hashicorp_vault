@@ -21,8 +21,8 @@ pipeline {
                 script {
                     // Check out the branch or create it if it doesn't exist
                     sh """
-                        git fetch origin
-                        git checkout ${GIT_BRANCH} || git checkout -b ${GIT_BRANCH}
+                        git fetch origin ${GIT_BRANCH}:${GIT_BRANCH} || git checkout -b ${GIT_BRANCH}
+                        git checkout ${GIT_BRANCH}
                     """
                     echo "Checked out branch '${GIT_BRANCH}'."
                 }
