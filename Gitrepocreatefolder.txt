@@ -1,10 +1,13 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'NEW_FOLDER', defaultValue: 'new-folder-name', description: 'Name of the new folder')
+    }
+
     environment {
         GIT_REPO = 'https://your-git-repo-url.git'
         GIT_CREDENTIALS_ID = 'your-credentials-id'
-        NEW_FOLDER = 'new-folder-name'
         BRANCH = 'your-branch-name'
     }
 
@@ -20,8 +23,8 @@ pipeline {
             steps {
                 script {
                     // Create a new folder
-                    sh "mkdir -p ${NEW_FOLDER}"
-                    sh "touch ${NEW_FOLDER}/.gitkeep" // Add an empty file to ensure the folder gets committed
+                    sh "mkdir -p ${params.NEW_FOLDER}"
+                    sh "touch ${params.NEW_FOLDER}/.gitkeep" // Add an empty file to ensure the folder gets committed
                 }
             }
         }
@@ -33,8 +36,8 @@ pipeline {
                     sh """
                         git config user.name 'Jenkins'
                         git config user.email 'jenkins@example.com'
-                        git add ${NEW_FOLDER}
-                        git commit -m 'Add ${NEW_FOLDER} folder'
+                        git add ${params.NEW_FOLDER}
+                        git commit -m 'Add ${params.NEW_FOLDER} folder'
                         git push origin ${BRANCH}
                     """
                 }
