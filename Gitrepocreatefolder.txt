@@ -3,8 +3,8 @@ pipeline {
     
     environment {
         GIT_CREDENTIALS_ID = 'your-credentials-id' // The ID of your Git credentials in Jenkins
-        GIT_REPO_URL = 'your-repo-url' // The URL of your Git repository
-        GIT_BRANCH = 'your-target-branch' // The branch to push the changes to
+        GIT_REPO_URL = 'https://github.com/your-username/your-repo.git' // The URL of your Git repository
+        GIT_BRANCH = 'dev' // The branch to push the changes to
         NEW_FOLDER_NAME = 'new-folder' // The name of the new folder to be created
     }
     
@@ -13,6 +13,19 @@ pipeline {
             steps {
                 // Assuming the repository is already cloned in this stage
                 echo 'Repository cloned.'
+            }
+        }
+        
+        stage('Checkout Branch') {
+            steps {
+                script {
+                    // Check out the branch or create it if it doesn't exist
+                    sh """
+                        git fetch origin
+                        git checkout ${GIT_BRANCH} || git checkout -b ${GIT_BRANCH}
+                    """
+                    echo "Checked out branch '${GIT_BRANCH}'."
+                }
             }
         }
         
