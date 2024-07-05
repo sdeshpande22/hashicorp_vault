@@ -1,45 +1,53 @@
 pipeline {
     agent any
-
-    parameters {
-        string(name: 'NEW_FOLDER', defaultValue: 'new-folder-name', description: 'Name of the new folder')
-    }
-
+    
     environment {
-        GIT_REPO = 'https://your-git-repo-url.git'
-        GIT_CREDENTIALS_ID = 'your-credentials-id'
-        BRANCH = 'your-branch-name'
+        GIT_CREDENTIALS_ID = 'your-credentials-id' // The ID of your Git credentials in Jenkins
+        GIT_REPO_URL = 'your-repo-url' // The URL of your Git repository
+        GIT_BRANCH = 'your-target-branch' // The branch to push the changes to
+        NEW_FOLDER_NAME = 'new-folder' // The name of the new folder to be created
     }
-
+    
     stages {
-        stage('Checkout') {
+        stage('Clone Repository') {
             steps {
-                // Checkout the Git repository
-                git branch: "${BRANCH}", url: "${GIT_REPO}", credentialsId: "${GIT_CREDENTIALS_ID}"
+                // Assuming the repository is already cloned in this stage
+                echo 'Repository cloned.'
             }
         }
-
-        stage('Create Folder') {
+        
+        stage('Create New Folder') {
             steps {
                 script {
-                    // Create a new folder
-                    sh "mkdir -p ${params.NEW_FOLDER}"
-                    sh "touch ${params.NEW_FOLDER}/.gitkeep" // Add an empty file to ensure the folder gets committed
+                    sh "mkdir -p ${NEW_FOLDER_NAME}"
+                    echo "New folder '${NEW_FOLDER_NAME}' created."
                 }
             }
         }
-
-        stage('Commit and Push') {
+        
+        stage('Add and Commit Changes') {
             steps {
                 script {
-                    // Commit the new folder and push to the repository
                     sh """
-                        git config user.name 'Jenkins'
-                        git config user.email 'jenkins@example.com'
-                        git add ${params.NEW_FOLDER}
-                        git commit -m 'Add ${params.NEW_FOLDER} folder'
-                        git push origin ${BRANCH}
+                        git add ${NEW_FOLDER_NAME}
+                        git commit -m 'Add new folder ${NEW_FOLDER_NAME}'
                     """
+                    echo "Changes committed."
+                }
+            }
+        }
+        
+        stage('Push Changes') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: env.GIT_CREDENTIALS_ID, passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                        sh """
+                            git config user.name "${GIT_USERNAME}"
+                            git config user.email "${GIT_USERNAME}@example.com"
+                            git push https://${GIT_USERNAME}:${GIT_PASSWORD}@${GIT_REPO_URL} ${GIT_BRANCH}
+                        """
+                        echo "Changes pushed to branch '${GIT_BRANCH}'."
+                    }
                 }
             }
         }
