@@ -1,0 +1,44 @@
+pipeline {
+    agent any
+
+    environment {
+        GIT_REPO = 'https://your-git-repo-url.git'
+        GIT_CREDENTIALS_ID = 'your-credentials-id'
+        NEW_FOLDER = 'new-folder-name'
+        BRANCH = 'your-branch-name'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout the Git repository
+                git branch: "${BRANCH}", url: "${GIT_REPO}", credentialsId: "${GIT_CREDENTIALS_ID}"
+            }
+        }
+
+        stage('Create Folder') {
+            steps {
+                script {
+                    // Create a new folder
+                    sh "mkdir -p ${NEW_FOLDER}"
+                    sh "touch ${NEW_FOLDER}/.gitkeep" // Add an empty file to ensure the folder gets committed
+                }
+            }
+        }
+
+        stage('Commit and Push') {
+            steps {
+                script {
+                    // Commit the new folder and push to the repository
+                    sh """
+                        git config user.name 'Jenkins'
+                        git config user.email 'jenkins@example.com'
+                        git add ${NEW_FOLDER}
+                        git commit -m 'Add ${NEW_FOLDER} folder'
+                        git push origin ${BRANCH}
+                    """
+                }
+            }
+        }
+    }
+}
