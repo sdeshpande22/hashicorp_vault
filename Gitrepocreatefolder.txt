@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         GIT_CREDENTIALS_ID = 'your-credentials-id' // The ID of your Git credentials in Jenkins
-        GIT_REPO_URL = 'https://github.com/your-username/your-repo.git' // The URL of your Git repository
+        GIT_REPO_URL = 'github.com/your-username/your-repo.git' // The URL of your Git repository without the protocol
         GIT_BRANCH = 'dev' // The branch to push the changes to
         NEW_FOLDER_NAME = 'new-folder' // The name of the new folder to be created
     }
@@ -41,11 +41,16 @@ pipeline {
         stage('Add and Commit Changes') {
             steps {
                 script {
-                    sh """
-                        git add ${NEW_FOLDER_NAME}
-                        git commit -m 'Add new folder ${NEW_FOLDER_NAME}'
-                    """
-                    echo "Changes committed."
+                    def changes = sh(script: "git status --porcelain", returnStdout: true).trim()
+                    if (changes) {
+                        sh """
+                            git add ${NEW_FOLDER_NAME}
+                            git commit -m 'Add new folder ${NEW_FOLDER_NAME}'
+                        """
+                        echo "Changes committed."
+                    } else {
+                        echo "No changes to commit."
+                    }
                 }
             }
         }
@@ -53,13 +58,18 @@ pipeline {
         stage('Push Changes') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: env.GIT_CREDENTIALS_ID, passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
-                        sh """
-                            git config user.name "${GIT_USERNAME}"
-                            git config user.email "${GIT_USERNAME}@example.com"
-                            git push https://${GIT_USERNAME}:${GIT_PASSWORD}@${GIT_REPO_URL} ${GIT_BRANCH}
-                        """
-                        echo "Changes pushed to branch '${GIT_BRANCH}'."
+                    def changes = sh(script: "git status --porcelain", returnStdout: true).trim()
+                    if (changes) {
+                        withCredentials([usernamePassword(credentialsId: env.GIT_CREDENTIALS_ID, passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                            sh """
+                                git config user.name "${GIT_USERNAME}"
+                                git config user.email "${GIT_USERNAME}@example.com"
+                                git push https://${GIT_USERNAME}:${GIT_PASSWORD}@${GIT_REPO_URL} ${GIT_BRANCH}
+                            """
+                            echo "Changes pushed to branch '${GIT_BRANCH}'."
+                        }
+                    } else {
+                        echo "No changes to push."
                     }
                 }
             }
