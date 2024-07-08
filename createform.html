@@ -25,37 +25,27 @@
             const projectSelect = document.getElementById('project');
             const serviceSelect = document.getElementById('service');
 
-            // Fetch projects from the server
-            fetch('/api/projects')
-                .then(response => response.json())
-                .then(data => {
-                    data.forEach(project => {
-                        const option = document.createElement('option');
-                        option.value = project.id;
-                        option.textContent = project.name;
-                        projectSelect.appendChild(option);
-                    });
-
-                    // Trigger change event to load services for the first project
-                    projectSelect.dispatchEvent(new Event('change'));
-                });
+            const services = {
+                "Project A": ["Service A1", "Service A2", "Service A3"],
+                "Project B": ["Service B1", "Service B2"],
+                "Project C": ["Service C1", "Service C2", "Service C3", "Service C4"]
+            };
 
             projectSelect.addEventListener('change', function() {
-                const selectedProjectId = this.value;
+                const selectedProject = this.value;
+                const options = services[selectedProject] || [];
 
-                // Fetch services for the selected project
-                fetch(`/api/services/${selectedProjectId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        serviceSelect.innerHTML = '';
-                        data.forEach(service => {
-                            const option = document.createElement('option');
-                            option.value = service.id;
-                            option.textContent = service.name;
-                            serviceSelect.appendChild(option);
-                        });
-                    });
+                serviceSelect.innerHTML = '';
+                options.forEach(function(service) {
+                    const option = document.createElement('option');
+                    option.value = service;
+                    option.textContent = service;
+                    serviceSelect.appendChild(option);
+                });
             });
+
+            // Trigger change event to load services for the first project on page load
+            projectSelect.dispatchEvent(new Event('change'));
         });
     </script>
 </head>
@@ -63,7 +53,11 @@
     <h1>Project and Services Form</h1>
     <form>
         <label for="project">Select Project:</label>
-        <select id="project" name="project"></select>
+        <select id="project" name="project">
+            <option value="Project A">Project A</option>
+            <option value="Project B">Project B</option>
+            <option value="Project C">Project C</option>
+        </select>
         <br><br>
         <label for="service">Select Service:</label>
         <select id="service" name="service"></select>
