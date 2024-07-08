@@ -1,0 +1,8 @@
+netsh http show sslcert | ForEach-Object {
+    if ($_ -match "^\s+(\S+)\s+:\s+(\S.+?)\s*$") {
+        [PSCustomObject]@{
+            Property = $matches[1]
+            Value    = $matches[2]
+        }
+    }
+} | Format-Table -AutoSize
