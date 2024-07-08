@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project and Services Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        form {
+            margin: 20px;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        select, input {
+            padding: 5px;
+            width: 200px;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const projectSelect = document.getElementById('project');
+            const serviceSelect = document.getElementById('service');
+
+            // Fetch projects from the server
+            fetch('/api/projects')
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(project => {
+                        const option = document.createElement('option');
+                        option.value = project.id;
+                        option.textContent = project.name;
+                        projectSelect.appendChild(option);
+                    });
+
+                    // Trigger change event to load services for the first project
+                    projectSelect.dispatchEvent(new Event('change'));
+                });
+
+            projectSelect.addEventListener('change', function() {
+                const selectedProjectId = this.value;
+
+                // Fetch services for the selected project
+                fetch(`/api/services/${selectedProjectId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        serviceSelect.innerHTML = '';
+                        data.forEach(service => {
+                            const option = document.createElement('option');
+                            option.value = service.id;
+                            option.textContent = service.name;
+                            serviceSelect.appendChild(option);
+                        });
+                    });
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Project and Services Form</h1>
+    <form>
+        <label for="project">Select Project:</label>
+        <select id="project" name="project"></select>
+        <br><br>
+        <label for="service">Select Service:</label>
+        <select id="service" name="service"></select>
+    </form>
+</body>
+</html>
