@@ -1,0 +1,25 @@
+import json
+
+# Read the JSON report
+with open('report.json', 'r') as f:
+    report = json.load(f)
+
+# Process the report
+custom_report = {
+    'summary': report['summary'],
+    'tests': []
+}
+
+for test in report['tests']:
+    test_info = {
+        'name': test['nodeid'],
+        'outcome': test['outcome'],
+        'duration': test['duration']
+    }
+    custom_report['tests'].append(test_info)
+
+# Save the custom report to a new JSON file
+with open('custom_report.json', 'w') as f:
+    json.dump(custom_report, f, indent=4)
+
+print("Custom report generated: custom_report.json")
