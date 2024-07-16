@@ -1,0 +1,18 @@
+pipeline {
+    agent any
+
+    environment {
+        BUILD_USER = sh(script: 'echo $BUILD_USER', returnStdout: true).trim()
+        BUILD_USER_ID = sh(script: 'echo $BUILD_USER_ID', returnStdout: true).trim()
+        INITIATOR = "${BUILD_USER}-${BUILD_USER_ID}"
+    }
+
+    stages {
+        stage('Display Initiator') {
+            steps {
+                echo "The build was initiated by: ${env.INITIATOR}"
+            }
+        }
+        // Other stages...
+    }
+}
