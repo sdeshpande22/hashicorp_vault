@@ -1,27 +1,10 @@
-pipeline {
-    agent any
-
-    stages {
-        stage('Capture Initiator Info') {
+stage('Get Build User') {
             steps {
                 script {
-                    // Access build information
-                    def buildUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)?.getUserId()
-                    def buildUserId = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)?.getUserName()
-
-                    // Set INITIATOR environment variable
-                    env.INITIATOR = "${buildUser}-${buildUserId}"
-
-                    echo "The build was initiated by: ${env.INITIATOR}"
+                    wrap([$class: 'BuildUser']) {
+                        def user = env.BUILD_USER_ID
+                        echo "Build triggered by: ${user}"
+                    }
                 }
             }
         }
-
-        stage('Run Python Script') {
-            steps {
-                // Pass INITIATOR environment variable as parameter to Python script
-                sh "python3 print_initiator.py '${env.INITIATOR}'"
-            }
-        }
-    }
-}
