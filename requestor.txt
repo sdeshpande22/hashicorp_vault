@@ -8,9 +8,15 @@ pipeline {
     }
 
     stages {
-        stage('Display Initiator') {
-            steps {
-                echo "The build was initiated by: ${env.INITIATOR}"
+            stage('Display Initiator') {
+                steps {
+                    echo "The build was initiated by: ${env.INITIATOR}"
+                }
+        
+            stage('Run Python Script') {
+                steps {
+                    sh "python3 print_initiator.py '${env.INITIATOR}'"
+                }
             }
         }
         // Other stages...
