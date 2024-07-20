@@ -1,0 +1,66 @@
+# Step 1: Generate Python Output
+data_list = [
+    {'Name': 'Alice', 'Age': 28, 'Occupation': 'Engineer'},
+    {'Name': 'Bob', 'Age': 34, 'Occupation': 'Doctor'},
+    {'Name': 'Charlie', 'Age': 25, 'Occupation': 'Artist'}
+]
+
+# Step 2: Create an HTML Template for New Data
+html_rows = ""
+for data in data_list:
+    html_rows += "<tr>"
+    for value in data.values():
+        html_rows += f"<td>{value}</td>"
+    html_rows += "</tr>"
+
+# Step 3: Append the generated rows to the existing HTML file
+# Reading the existing content
+with open('output.html', 'r') as file:
+    existing_content = file.read()
+
+# Finding the position to insert the new rows
+insert_position = existing_content.find("</table>")
+
+if insert_position == -1:
+    # If there's no table in the file, we create a new one
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Python Outputs</title>
+        <style>
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            table, th, td {
+                border: 1px solid black;
+            }
+            th, td {
+                padding: 10px;
+                text-align: left;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Python Output Table</h1>
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Age</th>
+                <th>Occupation</th>
+            </tr>
+            {rows}
+        </table>
+    </body>
+    </html>
+    """.format(rows=html_rows)
+else:
+    # If there's already a table, we insert the new rows before </table>
+    html_content = existing_content[:insert_position] + html_rows + existing_content[insert_position:]
+
+# Writing the updated content back to the file
+with open('output.html', 'w') as file:
+    file.write(html_content)
+
+print("HTML file updated successfully.")
