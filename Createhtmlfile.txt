@@ -1,3 +1,5 @@
+import os
+
 # Step 1: Generate Python Output
 data_list = [
     {'Name': 'Alice', 'Age': 28, 'Occupation': 'Engineer'},
@@ -13,6 +15,67 @@ for data in data_list:
         html_rows += f"<td>{value}</td>"
     html_rows += "</tr>"
 
+# Define the HTML structure for the new file with double curly braces for CSS
+html_structure = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Python Outputs</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }}
+        h1 {{
+            text-align: center;
+            color: #333;
+        }}
+        table {{
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }}
+        table, th, td {{
+            border: 1px solid #ddd;
+        }}
+        th, td {{
+            padding: 12px;
+            text-align: left;
+        }}
+        th {{
+            background-color: #f2f2f2;
+            color: #333;
+        }}
+        
+        tr {{
+            transition: background-color: #f9f9f9;
+        }}
+    </style>
+</head>
+<body>
+    <h1>Python Output Table</h1>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Occupation</th>
+        </tr>
+        {rows}
+    </table>
+</body>
+</html>
+"""
+
+# Create an empty HTML file if it doesn't exist
+if not os.path.exists('output.html'):
+    with open('output.html', 'w') as file:
+        file.write(html_structure.format(rows=""))
+
 # Step 3: Append the generated rows to the existing HTML file
 # Reading the existing content
 with open('output.html', 'r') as file:
@@ -22,44 +85,13 @@ with open('output.html', 'r') as file:
 insert_position = existing_content.find("</table>")
 
 if insert_position == -1:
-    # If there's no table in the file, we create a new one
-    html_content = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Python Outputs</title>
-        <style>
-            table {
-                width: 100%;
-                border-collapse: collapse;
-            }
-            table, th, td {
-                border: 1px solid black;
-            }
-            th, td {
-                padding: 10px;
-                text-align: left;
-            }
-        </style>
-    </head>
-    <body>
-        <h1>Python Output Table</h1>
-        <table>
-            <tr>
-                <th>Name</th>
-                <th>Age</th>
-                <th>Occupation</th>
-            </tr>
-            {rows}
-        </table>
-    </body>
-    </html>
-    """.format(rows=html_rows)
+    # If there's no table in the file, create a new one
+    html_content = html_structure.format(rows=html_rows)
 else:
-    # If there's already a table, we insert the new rows before </table>
+    # If there's already a table, insert the new rows before </table>
     html_content = existing_content[:insert_position] + html_rows + existing_content[insert_position:]
 
-# Writing the updated content back to the file
+# Step 4: Write the updated content back to the file
 with open('output.html', 'w') as file:
     file.write(html_content)
 
