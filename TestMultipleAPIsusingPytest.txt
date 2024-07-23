@@ -192,13 +192,16 @@ pipeline {
 #########################################################################################
 If you know the path to the specific Excel file and want to retrieve just its name, you can use the os.path module. Here’s how you can do it:
 ###################################################################################
+import glob
 import os
 
-# Path to the specific Excel file
-file_path = '/path/to/your/specific_excel_file.xlsx'
+# Path to the directory containing the JSON files
+directory = '/path/to/your/directory'
 
-# Get the file name from the file path
-file_name = os.path.basename(file_path)
+# Find all JSON files recursively in the directory
+json_files = glob.glob(os.path.join(directory, '**', '*.json'), recursive=True)
 
-print(f'File name: {file_name}')
+# Print the names of JSON files
+for json_file in json_files:
+    print(os.path.basename(json_file))
 
