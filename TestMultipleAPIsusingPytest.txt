@@ -50,3 +50,101 @@ Expected Response Code
 Content-Type
 With these updates, the Jenkins pipeline will run tests for each API URL and content type specified in the Excel files, using the credentials stored in Jenkins. 
 The tests will be executed without requiring manual input, making it suitable for scheduled runs.
+
+Yes, you can store the API_URL and Content-Type in the second sheet of the Excel workbook and read it using pandas. Here’s how you can do that:
+
+Update the Excel File: Add a second sheet to your Excel file (e.g., named config) with the API_URL and Content-Type.
+Step 1: Update the Excel File
+Your Excel file should have two sheets:
+
+test_data for the test cases.
+config for the configuration.
+
+Sheet: config
+*******************
+Parameter	    Value
+API_URL	        https://api.example.com
+CONTENT_TYPE	application/json
+***********************
+
+Sheet: test_data
+
+Function Name    Method Name	Child Path	Payload	Expected Response Code
+test_get		GET	/path1	{"param1": "value1"}	200
+test_post		POST	/path2	{"key1": "value1"}	201
+
+Step 2: Update the Python Script (generate_tests.py)
+Update the Python script to read the configuration from the second sheet of the Excel file.
+
+import pandas as pd
+import config
+from api_utils import handle_request
+import re
+import json
+import os
+
+# Load the Excel file using pandas
+excel_filename = os.environ.get('EXCEL_FILENAME')
+xls = pd.ExcelFile(excel_filename)
+
+# Read the config sheet
+config_df = pd.read_excel(xls, 'config')
+api_url = config_df[config_df['Parameter'] == 'API_URL']['Value'].values[0]
+content_type = config_df[config_df['Parameter'] == 'CONTENT_TYPE']['Value'].values[0]
+"""
+Sheet: config
+*******************
+Parameter	    Value
+API_URL	        https://api.example.com
+CONTENT_TYPE	application/json
+***********************
+"""
+# Read the test_data sheet
+df = pd.read_excel(xls, 'test_data')
+
+# Create a new Python file to write the test functions
+with open('test_generated.py', 'w') as f:
+    # Write import statements
+    f.write("import pytest\n")
+    f.write("import config\n")
+    f.write("from api_utils import handle_request\n\n")
+
+    # Function to convert a string to a valid Python identifier
+    def to_valid_identifier(s):
+        return re.sub(r'\W|^(?=\d)', '_', str(s))
+
+    # Iterate over rows of the DataFrame
+    for index, row in df.iterrows():
+        # Extract data from the row
+        function_name = to_valid_identifier(row['Function Name'])
+        filename = to_valid_identifier(row['Filename'])
+        method_name = to_valid_identifier(row['Method Name'])
+        child_path = str(row['Child Path']) if row['Child Path'] and str(row['Child Path']).lower() != 'nan' else ''
+        url = api_url + child_path
+        payload_str = row['Payload'] if row['Payload'] and str(row['Payload']).lower() != 'nan' else '{}'  # Read payload from DataFrame
+        payload = json.loads(payload_str)  # Convert JSON string to dictionary
+        expected_response_code = row['Expected Response Code']
+        headers = {
+            'Content-Type': content_type,
+            'Authorization': config.HEADERS['Authorization']
+        }
+
+        # Constructing the test description
+        test_description = f"Executing test for {function_name} in {filename} using {method_name} with URL: {url}"
+
+        # Write test function
+        f.write(f"def test_{function_name}_{filename}_{method_name}():\n")
+        f.write(f"\tfilename = '{filename}'\n")
+        f.write(f"\tfunction_name = '{function_name}'\n")
+        f.write(f"\tmethod_name = '{method_name}'\n")
+        f.write(f"\turl = '{url}'\n")  # Add URL
+        f.write(f"\theaders = {headers}\n")  # Include headers
+        f.write(f"\tpayload = {payload}\n")  # Include payload
+        f.write(f"\texpected_response_code = {expected_response_code}\n")  # Include expected response code
+        f.write(f"\tprint(\"{test_description}\")\n")
+        f.write(f"\tprint(\"Payload: {json.dumps(payload)}\")\n" if method_name.lower() != 'get' else f"\tprint(\"Params: {json.dumps(payload)}\")\n")
+        # Call handle_request function
+        f.write(f"\tresponse_status_code = handle_request(method_name, url, payload, headers, expected_response_code)\n")
+        f.write(f"\tassert response_status_code == expected_response_code, f\"Expected response code {expected_response_code} but got {response_status_code}\"\n\n")
+
+
