@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'TEST_DATA_DIR', defaultValue: 'test_data', description: 'Directory containing the test data Excel files')
+    }
+
+    environment {
+        API_CREDENTIALS = credentials('API_CREDENTIALS')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout your source code repository
+                checkout scm
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                script {
+                    def testDataDir = params.TEST_DATA_DIR
+                    def testFiles = findFiles(glob: "${testDataDir}/*.xlsx")
+
+                    for (file in testFiles) {
+                        echo "Running tests for ${file.name}"
+                        sh """
+                            export EXCEL_FILENAME=${file.path}
+                            export USERNAME=${API_CREDENTIALS_USR}
+                            export PASSWORD=${API_CREDENTIALS_PSW}
+                            pytest
+                        """
+                    }
+                }
+            }
+        }
+    }
+}
+
+Make sure your Excel file (test_data.xlsx) includes the following columns:
+
+Function Name
+Filename
+Method Name
+Child Path
+API URL
+Payload
+Expected Response Code
+Content-Type
+With these updates, the Jenkins pipeline will run tests for each API URL and content type specified in the Excel files, using the credentials stored in Jenkins. 
+The tests will be executed without requiring manual input, making it suitable for scheduled runs.
