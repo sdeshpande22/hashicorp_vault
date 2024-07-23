@@ -189,4 +189,16 @@ pipeline {
     }
 }
 
+#########################################################################################
+If you know the path to the specific Excel file and want to retrieve just its name, you can use the os.path module. Here’s how you can do it:
+###################################################################################
+import os
+
+# Path to the specific Excel file
+file_path = '/path/to/your/specific_excel_file.xlsx'
+
+# Get the file name from the file path
+file_name = os.path.basename(file_path)
+
+print(f'File name: {file_name}')
 
