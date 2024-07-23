@@ -147,4 +147,46 @@ with open('test_generated.py', 'w') as f:
         f.write(f"\tresponse_status_code = handle_request(method_name, url, payload, headers, expected_response_code)\n")
         f.write(f"\tassert response_status_code == expected_response_code, f\"Expected response code {expected_response_code} but got {response_status_code}\"\n\n")
 
+#################################################################################################################
+Example Jenkinsfile for Network Share
+Here’s an example Jenkinsfile that accesses Excel files from a network share. This assumes that the network share is mounted as a drive (e.g., Z:) or you can directly use the UNC path (e.g., \\network-share\path).
+
+
+pipeline {
+    agent any
+
+    environment {
+        API_CREDENTIALS = credentials('API_CREDENTIALS')
+        NETWORK_SHARE_PATH = '/mnt/network-share' // Use the mounted drive or UNC path
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout your source code repository
+                checkout scm
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                script {
+                    def testDataDir = "${env.NETWORK_SHARE_PATH}/test_data"  // Directory containing the test data Excel files
+                    def testFiles = findFiles(glob: "${testDataDir}/*.xlsx")
+
+                    for (file in testFiles) {
+                        echo "Running tests for ${file.name}"
+                        sh """
+                            export EXCEL_FILENAME=${file.path}
+                            export USERNAME=${API_CREDENTIALS_USR}
+                            export PASSWORD=${API_CREDENTIALS_PSW}
+                            pytest
+                        """
+                    }
+                }
+            }
+        }
+    }
+}
+
 
