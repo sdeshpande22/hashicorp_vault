@@ -1,0 +1,58 @@
+"""
+1) List of Credentials: We define a list of credentials, each represented as a dictionary with username and password keys.
+
+2) login Function: This function takes a credential dictionary as an argument, sends a POST request to the login URL with these credentials, and returns the status code and response text.
+
+3) stress_test Function: We define the stress_test function to perform the stress test.
+start_time and end_time are used to measure the duration of the stress test.
+We create a ThreadPoolExecutor with a specified number of threads (num_threads).
+Instead of using a one-liner, we iterate through each credential, submit the login task to the executor, and store the future objects in a list called futures.
+After submitting all tasks, we iterate through the futures list to get the results of each task and print the status code and response text.
+
+4) Run the Stress Test: Finally, we call the stress_test function with the list of credentials.
+"""
+import requests
+from concurrent.futures import ThreadPoolExecutor
+import time
+
+# Target URL for login
+url = "https://example.com/login"
+
+# List of credentials to test
+credentials = [
+    {"username": "user1", "password": "pass1"},
+    {"username": "user2", "password": "pass2"},
+    # Add more credentials as needed
+]
+
+# Function to perform a login request
+def login(cred):
+    try:
+        response = requests.post(url, data=cred)
+        return response.status_code, response.text
+    except Exception as e:
+        return "error", str(e)
+
+# Function to perform stress testing
+def stress_test(credentials, num_threads=10):
+    start_time = time.time()
+    
+    # Use ThreadPoolExecutor to simulate concurrent requests
+    with ThreadPoolExecutor(max_workers=num_threads) as executor:
+        futures = []
+        
+        # Submit tasks to the executor
+        for cred in credentials:
+            future = executor.submit(login, cred)
+            futures.append(future)
+        
+        # Retrieve and print results
+        for future in futures:
+            status_code, response_text = future.result()
+            print(f"Status Code: {status_code}, Response: {response_text}")
+    
+    end_time = time.time()
+    print(f"Stress test completed in {end_time - start_time} seconds")
+
+# Run the stress test
+stress_test(credentials)
