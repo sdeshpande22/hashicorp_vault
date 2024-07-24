@@ -10,6 +10,19 @@ Instead of using a one-liner, we iterate through each credential, submit the log
 After submitting all tasks, we iterate through the futures list to get the results of each task and print the status code and response text.
 
 4) Run the Stress Test: Finally, we call the stress_test function with the list of credentials.
+
+Detailed Explanation
+1) Initialize Executor: with ThreadPoolExecutor(max_workers=num_threads) as executor: initializes a thread pool with a specified number of threads (num_threads).
+2) List to Store Future Objects: futures = [] creates an empty list to store the Future objects returned by executor.submit.
+3) Loop Through Credentials: for cred in credentials: iterates over the list of credentials.
+4) Submit Task and Store Future: future = executor.submit(login, cred) schedules the login function to be executed with the current cred and stores the returned Future object in the future variable. futures.append(future) adds the Future object to the futures list for later retrieval of results.
+5) Retrieve and Print Results: After all tasks are submitted, the script loops through the futures list.
+for future in futures: iterates over each Future object.
+status_code, response_text = future.result() waits for the task to complete and retrieves the result (status code and response text).
+print(f"Status Code: {status_code}, Response: {response_text}") prints the results.
+This structure ensures that the login function is executed concurrently for each set of credentials, simulating multiple users logging in simultaneously and allowing for stress testing of the target system.
+
+
 """
 import requests
 from concurrent.futures import ThreadPoolExecutor
