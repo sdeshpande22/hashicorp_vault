@@ -1,70 +1,70 @@
-# Load WinSCP .NET assembly
-Add-Type -Path "path\to\WinSCPnet.dll"
-
-# Define variables for SSH connection
-$serverIp = "your_Citrix_ADM_server_IP"
-$username = "your_username"
-$password = "your_password"
-
-# Define SSH port (typically 22 for SFTP)
-$port = 22
-
-try {
-    # Create session options
-    $sessionOptions = New-Object WinSCP.SessionOptions -Property @{
-        Protocol = [WinSCP.Protocol]::Sftp
-        HostName = $serverIp
-        UserName = $username
-        Password = $password
-        PortNumber = $port
-        GiveUpSecurityAndAcceptAnySshHostKey = $true  # Accept any host key
-    }
-
-    # Create session instance
-    $session = New-Object WinSCP.Session
+function Upload-FilesToCitrixADM {
+    param (
+        [string]$serverIp,
+        [string]$username,
+        [string]$password,
+        [string]$localPath,
+        [string]$remotePath,
+        [int]$port = 22,
+        [string]$winSCPPath = "path\to\WinSCPnet.dll"
+    )
 
     try {
-        # Connect to server
-        $session.Open($sessionOptions)
+        # Load WinSCP .NET assembly
+        Add-Type -Path $winSCPPath
 
-        Write-Host "Connected to $serverIp"
+        # Create session options
+        $sessionOptions = New-Object WinSCP.SessionOptions -Property @{
+            Protocol = [WinSCP.Protocol]::Sftp
+            HostName = $serverIp
+            UserName = $username
+            Password = $password
+            PortNumber = $port
+            GiveUpSecurityAndAcceptAnySshHostKey = $true  # Accept any host key
+        }
 
-        # Define local directory path from where files will be uploaded
-        $localPath = "C:\path\to\local\directory\*"  # Wildcard to upload all files
+        # Create session instance
+        $session = New-Object WinSCP.Session
 
-        # Define remote directory path on Citrix ADM server
-        $remotePath = "/remote/directory/path/"
+        try {
+            # Connect to server
+            $session.Open($sessionOptions)
 
-        # Set up transfer options
-        $transferOptions = New-Object WinSCP.TransferOptions
-        $transferOptions.TransferMode = [WinSCP.TransferMode]::Binary
+            # Set up transfer options
+            $transferOptions = New-Object WinSCP.TransferOptions
+            $transferOptions.TransferMode = [WinSCP.TransferMode]::Binary
 
-        # Upload files from local directory to remote directory
-        $transferResult = $session.PutFiles($localPath, $remotePath, $False, $transferOptions)
+            # Upload files from local directory to remote directory
+            $transferResult = $session.PutFiles($localPath, $remotePath, $False, $transferOptions)
 
-        # Check and handle errors
-        if ($transferResult.IsSuccess) {
-            # Check if no files were uploaded
-            if ($transferResult.Transfers.Count -eq 0) {
-                throw [System.Exception] "No files were uploaded from $localPath"
+            # Check and handle errors
+            if ($transferResult.IsSuccess) {
+                # Check if no files were uploaded
+                if ($transferResult.Transfers.Count -eq 0) {
+                    throw "No files were uploaded from $localPath"
+                }
+
+                # If any file failed to upload, throw an error
+                if ($transferResult.Failures.Count -gt 0) {
+                    $errors = $transferResult.Failures | ForEach-Object { $_.Message } -join ", "
+                    throw "File upload failed with errors: $errors"
+                }
+
+                # Return true indicating success
+                return $true
+            } else {
+                # If the transfer result is not successful, throw an error with details
+                $errors = $transferResult.Failures | ForEach-Object { $_.Message } -join ", "
+                throw "File upload failed with errors: $errors"
             }
-
-            # Display success message
-            Write-Host ("Uploaded {0} files from {1} to {2}" -f $transferResult.Transfers.Count, $localPath, $remotePath)
-        } else {
-            # If the transfer result is not successful, throw an exception with error details
-            $errors = $transferResult.Failures | ForEach-Object { $_.Message } -join ", "
-            throw [System.Exception] "File upload failed with errors: $errors"
+        }
+        finally {
+            # Disconnect and clean up session
+            $session.Dispose()
         }
     }
-    finally {
-        # Disconnect and clean up session
-        $session.Dispose()
+    catch {
+        # Return error message
+        return $_.Exception.Message
     }
-
-    exit 0
-}
-catch {
-    Write-Host ("Error: {0}" -f $_.Exception.Message)
-    exit 1
 }
