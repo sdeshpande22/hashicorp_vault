@@ -1,0 +1,70 @@
+# Load WinSCP .NET assembly
+Add-Type -Path "path\to\WinSCPnet.dll"
+
+# Define variables for SSH connection
+$serverIp = "your_Citrix_ADM_server_IP"
+$username = "your_username"
+$password = "your_password"
+
+# Define SSH port (typically 22 for SFTP)
+$port = 22
+
+try {
+    # Create session options
+    $sessionOptions = New-Object WinSCP.SessionOptions -Property @{
+        Protocol = [WinSCP.Protocol]::Sftp
+        HostName = $serverIp
+        UserName = $username
+        Password = $password
+        PortNumber = $port
+        GiveUpSecurityAndAcceptAnySshHostKey = $true  # Accept any host key
+    }
+
+    # Create session instance
+    $session = New-Object WinSCP.Session
+
+    try {
+        # Connect to server
+        $session.Open($sessionOptions)
+
+        Write-Host "Connected to $serverIp"
+
+        # Define local directory path from where files will be uploaded
+        $localPath = "C:\path\to\local\directory\*"  # Wildcard to upload all files
+
+        # Define remote directory path on Citrix ADM server
+        $remotePath = "/remote/directory/path/"
+
+        # Set up transfer options
+        $transferOptions = New-Object WinSCP.TransferOptions
+        $transferOptions.TransferMode = [WinSCP.TransferMode]::Binary
+
+        # Upload files from local directory to remote directory
+        $transferResult = $session.PutFiles($localPath, $remotePath, $False, $transferOptions)
+
+        # Check and handle errors
+        if ($transferResult.IsSuccess) {
+            # Check if no files were uploaded
+            if ($transferResult.Transfers.Count -eq 0) {
+                throw [System.Exception] "No files were uploaded from $localPath"
+            }
+
+            # Display success message
+            Write-Host ("Uploaded {0} files from {1} to {2}" -f $transferResult.Transfers.Count, $localPath, $remotePath)
+        } else {
+            # If the transfer result is not successful, throw an exception with error details
+            $errors = $transferResult.Failures | ForEach-Object { $_.Message } -join ", "
+            throw [System.Exception] "File upload failed with errors: $errors"
+        }
+    }
+    finally {
+        # Disconnect and clean up session
+        $session.Dispose()
+    }
+
+    exit 0
+}
+catch {
+    Write-Host ("Error: {0}" -f $_.Exception.Message)
+    exit 1
+}
