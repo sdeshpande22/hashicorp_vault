@@ -1,0 +1,30 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'FILE_NAME', defaultValue: '', description: 'Enter the exact file name to match')
+    }
+
+    stages {
+        stage('Check File Match') {
+            steps {
+                script {
+                    // Capture the parameter value
+                    def fileName = params.FILE_NAME
+                    
+                    // Check for exact match of the file name in the cloned repo
+                    if (fileName) {
+                        def fileExists = fileExists(fileName)
+                        if (fileExists) {
+                            echo "File ${fileName} exists in the repository."
+                        } else {
+                            error "File ${fileName} does not exist in the repository."
+                        }
+                    } else {
+                        error "No file name provided."
+                    }
+                }
+            }
+        }
+    }
+}
