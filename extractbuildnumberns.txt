@@ -1,0 +1,15 @@
+# Input string
+$string = "build-12.1-63.22_nc_64"
+
+# Define regex pattern to match sequences of numbers with various separators
+$pattern = "(?<=\w[-_.,:])(\d+(?:[._,-:]\d+)*)"
+
+# Use regex to match the pattern
+$matches = [regex]::Matches($string, $pattern)
+
+# Check if any matches were found
+if ($matches.Count -gt 0) {
+    # Extract all matches except the last one
+    $output = $matches | Select-Object -First ($matches.Count - 1) | ForEach-Object { $_.Value } -join "-"
+    Write-Output $output
+}
