@@ -1,0 +1,11 @@
+1. Frontend Development
+Frontend development encompasses everything users interact with directly on a website or application. We have began the process using ANT design to create visually appealing and user-friendly designs. Our implementation involves coding these designs into responsive and interactive web pages using HTML, CSS, and JavaScript frameworks using react. This stage can take between 20 to 80 hours, depending on complexity. Finally, testing and QA ensure the frontend is bug-free taking an additional 10 to 40 Hours. 
+
+2. Backend Development
+Backend development focuses on the server side, ensuring that the application functions correctly. It will start with API development and integration, where we are going to create and integrate APIs for communication between different parts of the application and third-party services. This phase can take between 40 to 80 hours with an estimate of 20k$. Database setup and management are also crucial, involving the design and maintenance of databases using systems like MySQL, PostgreSQL typically taking 20 to 30 hours with an estimate of 10k$. Rigorous testing and QA, including unit and integration testing, are performed to ensure the backend operates smoothly, usually requiring 10 to 20 hours with an estimate of around 6k $
+
+3. Infrastructure Costs
+Infrastructure costs primarily involve cloud hosting services, with Google Cloud Platform (GCP) being a popular choice. These costs can vary widely based on the scale of the application. For IKP RMS, we have estimated around 11k$ per year. These expenses cover compute instances, storage, databases, and network usage. Proper planning and resource management are essential to optimize these costs and ensure efficient and scalable infrastructure.
+
+4. Licensing and Tools
+Licensing and tools are crucial for enhancing development and operational efficiency. Analytics tools like Power BI and Qlik offer powerful data visualization and business intelligence capabilities. we have estimated around 3k$ for procuring licenses, with enterprise solutions available upon request. These tools will help us to make data-driven decisions, Predictive Scaling (which Enhances application efficiency with intelligent workload forecasting and resource management) which are an essential part of modern development projects.
