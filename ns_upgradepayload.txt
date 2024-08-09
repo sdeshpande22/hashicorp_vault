@@ -1,0 +1,156 @@
+Here's a more detailed explanation of each payload key used in the ns_upgrade JSON object for the Citrix ADM NITRO API's upgrade process:
+
+1. image_name (String_value)
+Purpose: Specifies the name of the firmware or software image file that will be used for upgrading the Citrix ADC instance.
+Example: "NS13.0-82.41.nc"
+Details: This key is essential as it tells the system which version of the Citrix ADC software you intend to upgrade to. The file must already be uploaded to the Citrix ADM or accessible from the specified location.
+
+2. pre_upgrade_script (String_value)
+Purpose: A series of NetScaler commands or a script that runs on the Citrix ADC instance before the upgrade process begins.
+Example: "save ns config; show version"
+Details: Use this to perform preparatory tasks such as saving configurations, taking snapshots, or verifying system states before proceeding with the upgrade. This ensures that the ADC is in a stable state and ready for the upgrade.
+
+3. issu_migration_timeout (Integer_value)
+Purpose: Defines the timeout period (in seconds) for the In-Service Software Upgrade (ISSU) migration.
+Example: 300
+Details: ISSU allows the upgrade to occur with minimal downtime, particularly in a High Availability (HA) setup. This key sets how long the system should wait for the migration phase during the ISSU process.
+
+4. adc_cloud_image_version (String_value)
+Purpose: Specifies the version of the ADC cloud image that will be used for the upgrade.
+Example: "13.0-82.41"
+Details: This key is relevant if you're upgrading an ADC instance running in a cloud environment. It ensures that the correct cloud version is applied during the upgrade.
+
+5. cleanup_unsupported_policy (Boolean_value)
+Purpose: Indicates whether unsupported policies should be automatically cleaned up during the upgrade.
+Example: true
+Details: During an upgrade, some legacy or deprecated policies might no longer be supported. Setting this flag to true ensures these policies are removed to prevent conflicts or issues after the upgrade.
+
+6. slack_profile (String_value)
+Purpose: Specifies the Slack profile to which notifications about the upgrade process will be sent.
+Example: "UpgradeNotifications"
+Details: By configuring this key, you can have the system send real-time updates and notifications about the upgrade progress or any issues directly to a Slack channel, keeping your team informed.
+
+7. do_cleanup (Boolean_value)
+Purpose: Indicates whether post-upgrade cleanup tasks should be performed.
+Example: true
+Details: After an upgrade, there may be temporary files, logs, or outdated configurations that need to be cleaned up. This key triggers those tasks automatically, ensuring a clean post-upgrade environment.
+
+8. id (String_value)
+Purpose: A unique identifier for the upgrade task.
+Example: "upgrade_task_123"
+Details: This ID allows you to track and manage the specific upgrade process. It’s useful in environments where multiple upgrades may be scheduled or executed concurrently.
+
+9. is_post_upgrade_script_selected (Boolean_value)
+Purpose: Indicates whether a post-upgrade script has been selected and should be executed.
+Example: true
+Details: If set to true, the system will run the script specified in post_upgrade_script after the upgrade completes. This can be used for tasks such as verifying the upgrade, applying additional configurations, or performing health checks.
+
+10. scheduleTimesEpoch (String_value)
+Purpose: The Unix timestamp that specifies when the upgrade should begin.
+Example: "1691581200"
+Details: This key schedules the upgrade to start at a specific time. If the timestamp is in the past or set to the current time, the upgrade will start immediately. This allows precise control over when the upgrade occurs, which is important in production environments.
+
+11. is_remote_download (Boolean_value)
+Purpose: Indicates whether the upgrade image should be downloaded from a remote location.
+Example: true
+Details: If set to true, the system will download the upgrade image from a specified remote server rather than using a locally available file. This is useful in environments where the image is stored on a central server.
+
+12. device_groups (String_value[])
+Purpose: An array of device group names where the upgrade should be applied.
+Example: ["Group1", "Group2"]
+Details: This key allows you to target the upgrade to specific groups of Citrix ADC devices. Device groups help in managing upgrades across multiple instances efficiently.
+
+13. do_backup (Boolean_value)
+Purpose: Indicates whether a backup of the ADC configuration should be taken before the upgrade.
+Example: true
+Details: Setting this to true ensures that a full backup of the system configuration is created before the upgrade begins. This is a critical step in ensuring that you can restore the system to its previous state if something goes wrong during the upgrade.
+
+14. name (String_value)
+Purpose: A descriptive name for the upgrade task.
+Example: "Upgrade_to_13.0"
+Details: This name helps in identifying and managing the upgrade task within the Citrix ADM console. It’s particularly useful in environments where multiple upgrades are scheduled or tracked.
+
+15. doc_file (String_value)
+Purpose: The name of a documentation file related to the upgrade.
+Example: "UpgradePlan.docx"
+Details: This field allows you to associate a specific documentation file with the upgrade task. It could contain instructions, upgrade plans, or logs that are relevant to the task.
+
+16. ns_ip_address_arr (String_value[])
+Purpose: An array of IP addresses of the Citrix ADC instances that will be upgraded.
+Example: ["192.168.1.1", "192.168.1.2"]
+Details: Specifies the exact instances that should be upgraded. This allows for selective upgrades in environments with multiple ADC instances.
+
+17. is_issu_enabled (Boolean_value)
+Purpose: Indicates whether In-Service Software Upgrade (ISSU) is enabled.
+Example: true
+Details: ISSU allows the upgrade to take place with minimal downtime, particularly in a High Availability (HA) environment. Enabling this feature ensures that one node is upgraded while the other continues to serve traffic.
+
+18. scheduleId (String_value)
+Purpose: The identifier for the schedule associated with the upgrade.
+Example: "sch12345"
+Details: This key links the upgrade task to a predefined schedule within Citrix ADM, allowing for better organization and coordination of upgrade activities.
+
+19. mail_profiles (String_value)
+Purpose: Specifies the email profile to be used for sending notifications about the upgrade.
+Example: "AdminNotifications"
+Details: Configuring this allows the system to send email notifications about the status of the upgrade to the specified recipients, keeping the relevant personnel informed.
+
+20. post_upgrade_pre_failover_script (String_value)
+Purpose: A script that runs after the upgrade but before any failover occurs.
+Example: "show ns nsip"
+Details: This script is useful for performing checks or configurations that need to be in place before the system switches to the secondary node in an HA setup. It ensures the system is ready for failover.
+
+21. ha_two_phase_upgrade (Boolean_value)
+Purpose: Indicates whether a two-phase upgrade should be performed in a High Availability (HA) setup.
+Example: true
+Details: In a two-phase upgrade, the primary node is upgraded first, and after verification, the secondary node is upgraded. This minimizes the impact on traffic and ensures a smoother upgrade in HA environments.
+
+22. post_upgrade_script (String_value)
+Purpose: A script to be executed after the upgrade completes.
+Example: "show ns hardware; save ns config"
+Details: This script can be used to perform final checks, reapply configurations, or verify the system's state after the upgrade is done. It helps ensure the system is fully operational and configured correctly post-upgrade.
+
+23. second_failover_enabled (Boolean_value)
+Purpose: Indicates whether a second failover should be performed after the upgrade.
+Example: true
+Details: Some environments require a secondary failover to ensure that all nodes are fully synchronized and stable post-upgrade. This flag triggers that process automatically.
+
+24. is_pre_upgrade_script_selected (Boolean_value)
+Purpose: Indicates whether a pre-upgrade script has been selected and should be executed.
+Example: true
+Details: This key ensures that the pre-upgrade script specified in pre_upgrade_script is executed before the upgrade begins, allowing for necessary preparatory actions.
+
+25. adc_cloud_image_id (String_value)
+Purpose: The identifier for the ADC cloud image to be used in the upgrade.
+Example: "cloud_image_123"
+Details: This key specifically identifies which cloud image should be used during the upgrade, particularly relevant for ADC instances running in cloud environments.
+
+26. ha_node2_devices (String_value[])
+Purpose: An array of IP addresses for the secondary node devices in an HA setup.
+Example: ["192.168.2.1", "192.168.2.2"]
+Details: This key specifies the secondary node devices that will be targeted during the upgrade. It ensures that the second node in an HA pair is appropriately handled during the upgrade.
+
+27. is_pre_post_upgrade_script_same (Boolean_value)
+Purpose: Indicates whether the pre-upgrade and post-upgrade scripts are the same.
+Example: false
+Details: If set to true, the system will use the same script for both the pre-upgrade and post-upgrade phases. This can simplify the configuration if the same actions need to be performed before and after the upgrade.
+
+28. is_pre_post_upgrade_pre_failover_script_same (Boolean_value)
+Purpose: Indicates whether the post-upgrade script and the pre-failover script are the same.
+Example: false
+Details: This flag can be used if the same script should run both after the upgrade and before the failover in an HA environment, simplifying the process and ensuring consistency.
+
+29. scheduleTimesEpoch2 (String_value)
+Purpose: The Unix timestamp that specifies when the second phase of the upgrade should begin (if applicable).
+Example: "1691584800"
+Details: For multi-phase upgrades, this key schedules the start of the second phase. It allows precise timing of each phase, ensuring that the upgrade is conducted in a controlled and coordinated manner.
+
+30. saveconfig_enabled (Boolean_value)
+Purpose: Indicates whether the configuration should be saved after the upgrade.
+Example: true
+Details: Ensures that any changes made during the upgrade, including new configurations or updates, are saved permanently. This is crucial for retaining the new settings after a system reboot.
+
+31. is_post_upgrade_pre_failover_script_selected (Boolean_value)
+Purpose: Indicates whether the post-upgrade pre-failover script has been selected and should be executed.
+Example: true
+Details: Ensures that the script specified in post_upgrade_pre_failover_script is executed in the specified phase of the upgrade. This adds another layer of control to the upgrade process, particularly in HA environments.
