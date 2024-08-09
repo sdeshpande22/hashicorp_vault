@@ -1,0 +1,12 @@
+# Define the future date and time
+$futureDateTime = "31/12/2024 23:59:59"
+
+# Parse the future date and time into a DateTime object
+$dateTime = [datetime]::ParseExact($futureDateTime, "dd/MM/yyyy HH:mm:ss", $null)
+
+# Convert the DateTime object to Unix timestamp
+$epochStart = [datetime]'1970-01-01T00:00:00Z'
+$unixTimestamp = [math]::Floor(($dateTime - $epochStart).TotalSeconds)
+
+# Output the Unix timestamp
+$unixTimestamp
