@@ -14,3 +14,9 @@ Implementing the system on GCP requires careful cost management, including accur
 
 5) User Adaptation
 Successful user adoption is key to the system's success. Comprehensive training, change management support, and addressing user needs can facilitate a smooth transition. Overcoming resistance and ensuring seamless integration with existing workflows will enhance long-term adoption and effectiveness.
+
+
+*********************Frontend Development: Budget for UI/UX design, responsive layouts, and interactivity.
+Backend Development: Estimate for database setup, server logic, and API creation.
+Infra Costs: Allocation for cloud services, hosting, and network infrastructure.
+Licensing and Tools: Costs for software licenses, developer tools, and integrations.
