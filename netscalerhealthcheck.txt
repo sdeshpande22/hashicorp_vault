@@ -1,41 +1,33 @@
-# Define the NetScaler device IP address
-$netscalerIP = "192.168.1.1"
-$username = "your_username"
-$password = "your_password"
-
-# Define threshold values
-$cpuThreshold = 80       # CPU usage percentage threshold
-$memThreshold = 80       # Memory usage percentage threshold
-$diskThreshold = 85      # Disk usage percentage threshold
-$diskErrorThreshold = 1  # Disk error count threshold
-
-# Function to get NetScaler stats via Nitro API
-function Get-NetScalerStats {
+function Check-NetScalerHealth {
     param (
-        [string]$resource
+        [string]$netscalerIP,
+        [string]$username,
+        [string]$password,
+        [int]$cpuThreshold = 80,
+        [int]$memThreshold = 80,
+        [int]$diskThreshold = 85,
+        [int]$diskErrorThreshold = 1
     )
 
-    $url = "https://$netscalerIP/nitro/v1/stat/$resource"
+    # Define the headers for the Nitro API request
     $headers = @{
         'X-NITRO-USER' = $username
         'X-NITRO-PASS' = $password
     }
 
-    $response = Invoke-RestMethod -Uri $url -Method Get -Headers $headers -SkipCertificateCheck
-    return $response
-}
+    # Fetch CPU and memory stats
+    $systemUrl = "https://$netscalerIP/nitro/v1/stat/system"
+    $systemStats = Invoke-RestMethod -Uri $systemUrl -Method Get -Headers $headers -SkipCertificateCheck
 
-# Function to check CPU, memory, and disk space
-function Check-NetscalerHealth {
-    # Get system stats
-    $systemStats = Get-NetScalerStats -resource "system"
+    # Fetch disk stats
+    $diskUrl = "https://$netscalerIP/nitro/v1/stat/nsrpudisk"
+    $diskStats = Invoke-RestMethod -Uri $diskUrl -Method Get -Headers $headers -SkipCertificateCheck
 
-    # Extracting CPU and Memory usage
+    # Extract CPU and memory usage
     $cpuUsage = $systemStats.system.cpuusagepcnt
     $memUsage = $systemStats.system.memusagepcnt
 
-    # Get disk space usage
-    $diskStats = Get-NetScalerStats -resource "nsrpudisk"
+    # Extract disk usage and errors
     $diskUsage = $diskStats.nsrpudisk.useddiskpcnt
     $diskErrors = $diskStats.nsrpudisk.diskerrcount
 
@@ -72,5 +64,5 @@ function Check-NetscalerHealth {
     }
 }
 
-# Run the health check function
-Check-NetscalerHealth
+# Example usage of the function
+Check-NetScalerHealth -netscalerIP "192.168.1.1" -username "your_username" -password "your_password"
