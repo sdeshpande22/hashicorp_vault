@@ -3,7 +3,11 @@ function Get-ADMInstanceDetails {
         [string]$admIP,
         [string]$username,
         [string]$password,
-        [string]$instanceIP
+        [string]$instanceIP,
+        [int]$memoryThreshold = 80,
+        [int]$diskThreshold = 85,
+        [int]$packetCpuThreshold = 70,
+        [int]$mgmtCpuThreshold = 70
     )
 
     # Define the headers for the Nitro API request
@@ -31,14 +35,28 @@ function Get-ADMInstanceDetails {
         "Memory Capacity Event" = $instanceScore.ind_capacity_mem
     }
 
-    # Data metrics
+    # Data metrics with thresholds
     $dataMetrics = @{
-        "Instance State" = $instanceScore.instance_state
-        "Data Memory Used (%)" = $instanceScore.data_memory_used
-        "Disk0 Used Space (%)" = $instanceScore.data_disk0_used
-        "Disk1 Used Space (%)" = $instanceScore.data_disk1_used
-        "Packet CPU Usage (%)" = $instanceScore.data_cpu_used_packet
-        "Management CPU Usage (%)" = $instanceScore.data_cpu_used_mgmt
+        "Data Memory Used (%)" = @{
+            "value" = $instanceScore.data_memory_used
+            "threshold" = $memoryThreshold
+        }
+        "Disk0 Used Space (%)" = @{
+            "value" = $instanceScore.data_disk0_used
+            "threshold" = $diskThreshold
+        }
+        "Disk1 Used Space (%)" = @{
+            "value" = $instanceScore.data_disk1_used
+            "threshold" = $diskThreshold
+        }
+        "Packet CPU Usage (%)" = @{
+            "value" = $instanceScore.data_cpu_used_packet
+            "threshold" = $packetCpuThreshold
+        }
+        "Management CPU Usage (%)" = @{
+            "value" = $instanceScore.data_cpu_used_mgmt
+            "threshold" = $mgmtCpuThreshold
+        }
     }
 
     # Display the results
@@ -56,11 +74,18 @@ function Get-ADMInstanceDetails {
         }
     }
 
-    # Print the data metrics
+    # Print and evaluate the data metrics against thresholds
     Write-Output "`nData Metrics:"
     foreach ($key in $dataMetrics.Keys) {
-        $value = $dataMetrics[$key]
-        Write-Output "$key: $value"
+        $metric = $dataMetrics[$key]
+        $value = $metric["value"]
+        $threshold = $metric["threshold"]
+
+        if ($value -ge $threshold) {
+            Write-Output "WARNING: $key is at $value% (Threshold: $threshold%)"
+        } else {
+            Write-Output "$key: $value% (Normal)"
+        }
     }
 }
 
