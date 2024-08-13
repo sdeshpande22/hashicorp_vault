@@ -15,21 +15,22 @@ function Check-NetScalerHealth {
         'X-NITRO-PASS' = $password
     }
 
-    # Fetch CPU and memory stats
+    # Fetch system stats for CPU and memory usage
     $systemUrl = "https://$netscalerIP/nitro/v1/stat/system"
     $systemStats = Invoke-RestMethod -Uri $systemUrl -Method Get -Headers $headers -SkipCertificateCheck
 
-    # Fetch disk stats
-    $diskUrl = "https://$netscalerIP/nitro/v1/stat/nsrpudisk"
-    $diskStats = Invoke-RestMethod -Uri $diskUrl -Method Get -Headers $headers -SkipCertificateCheck
+    # Fetch disk stats from the appropriate endpoint
+    # Since `nsrpudisk` is not available, using the 'system' endpoint again to gather disk-related metrics
+    $storageUrl = "https://$netscalerIP/nitro/v1/stat/system"
+    $storageStats = Invoke-RestMethod -Uri $storageUrl -Method Get -Headers $headers -SkipCertificateCheck
 
     # Extract CPU and memory usage
     $cpuUsage = $systemStats.system.cpuusagepcnt
     $memUsage = $systemStats.system.memusagepcnt
 
-    # Extract disk usage and errors
-    $diskUsage = $diskStats.nsrpudisk.useddiskpcnt
-    $diskErrors = $diskStats.nsrpudisk.diskerrcount
+    # Extract disk usage and disk errors (substitute with actual metrics available in your environment)
+    $diskUsage = $storageStats.system.disk0perusage
+    $diskErrors = $storageStats.system.diskerrcount
 
     # Display the results
     Write-Output "NetScaler Health Check:"
