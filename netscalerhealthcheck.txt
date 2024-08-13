@@ -91,3 +91,17 @@ function Get-ADMInstanceDetails {
 
 # Example usage of the function
 Get-ADMInstanceDetails -admIP "192.168.1.2" -username "your_adm_username" -password "your_adm_password" -instanceIP "192.168.1.1"
+
+<#
+
+ind_pooled_license_events	Indicates if erros related to pooled license has occured or not.
+ind_ssl_card_error	SSL card failure state indicator.0 indicates no errors, 1 indicate error and -1 indicates Not-Applicable or Unknown.
+ind_capacity_mem	Indicates event occurs.0 indicates no ,1 indicates event occurs,-1 indicates not evaluated.
+instance_state
+data_memory_used	Data Memory used in percentage.
+data_disk0_used	 Disk0 used space in percentage.
+data_disk1_used	 Disk1 used space in percentage.
+data_cpu_used_packet	Packet Cpu usage percentage.
+data_cpu_used_mgmt Management Cpu usage percentage.
+#>
+
