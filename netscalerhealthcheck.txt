@@ -1,69 +1,68 @@
-function Check-NetScalerHealth {
+function Get-ADMInstanceDetails {
     param (
-        [string]$netscalerIP,
+        [string]$admIP,
         [string]$username,
         [string]$password,
-        [int]$cpuThreshold = 80,
-        [int]$memThreshold = 80,
-        [int]$diskThreshold = 85,
-        [int]$diskErrorThreshold = 1
+        [string]$instanceIP
     )
 
     # Define the headers for the Nitro API request
     $headers = @{
         'X-NITRO-USER' = $username
         'X-NITRO-PASS' = $password
+        'Content-Type' = 'application/json'
     }
 
-    # Fetch system stats for CPU and memory usage
-    $systemUrl = "https://$netscalerIP/nitro/v1/stat/system"
-    $systemStats = Invoke-RestMethod -Uri $systemUrl -Method Get -Headers $headers -SkipCertificateCheck
+    # Fetch the instance score from the ADM API
+    $url = "https://$admIP/nitro/v1/config/instance_score?args=IPAddress:$instanceIP"
+    $response = Invoke-RestMethod -Uri $url -Method Get -Headers $headers -SkipCertificateCheck
 
-    # Fetch disk stats from the appropriate endpoint
-    # Since `nsrpudisk` is not available, using the 'system' endpoint again to gather disk-related metrics
-    $storageUrl = "https://$netscalerIP/nitro/v1/stat/system"
-    $storageStats = Invoke-RestMethod -Uri $storageUrl -Method Get -Headers $headers -SkipCertificateCheck
+    # Extract relevant data
+    $instanceScore = $response.instance_score[0]
+    $indicators = @{
+        "Flash Error" = $instanceScore.ind_flash_error
+        "CPU Usage" = $instanceScore.ind_cpu_used
+        "Power Error" = $instanceScore.ind_power_error
+        "CPU Capacity Event" = $instanceScore.ind_capacity_cpu
+        "Memory Usage" = $instanceScore.ind_memory_used
+        "Disk Usage" = $instanceScore.ind_disk_used
+        "Pooled License Events" = $instanceScore.ind_pooled_license_events
+        "SSL Card Error" = $instanceScore.ind_ssl_card_error
+        "Memory Capacity Event" = $instanceScore.ind_capacity_mem
+    }
 
-    # Extract CPU and memory usage
-    $cpuUsage = $systemStats.system.cpuusagepcnt
-    $memUsage = $systemStats.system.memusagepcnt
-
-    # Extract disk usage and disk errors (substitute with actual metrics available in your environment)
-    $diskUsage = $storageStats.system.disk0perusage
-    $diskErrors = $storageStats.system.diskerrcount
+    # Data metrics
+    $dataMetrics = @{
+        "Instance State" = $instanceScore.instance_state
+        "Data Memory Used (%)" = $instanceScore.data_memory_used
+        "Disk0 Used Space (%)" = $instanceScore.data_disk0_used
+        "Disk1 Used Space (%)" = $instanceScore.data_disk1_used
+        "Packet CPU Usage (%)" = $instanceScore.data_cpu_used_packet
+        "Management CPU Usage (%)" = $instanceScore.data_cpu_used_mgmt
+    }
 
     # Display the results
-    Write-Output "NetScaler Health Check:"
-    Write-Output "========================"
+    Write-Output "ADM Instance Health Check for $instanceIP:"
+    Write-Output "=========================================="
 
-    # Check CPU usage
-    if ($cpuUsage -ge $cpuThreshold) {
-        Write-Output "WARNING: CPU Usage is high at $cpuUsage% (Threshold: $cpuThreshold%)"
-    } else {
-        Write-Output "CPU Usage: $cpuUsage% (Normal)"
+    # Evaluate and print the indicators
+    foreach ($key in $indicators.Keys) {
+        $value = $indicators[$key]
+        switch ($value) {
+            0 { Write-Output "$key: No errors (0)" }
+            1 { Write-Output "WARNING: $key - Error detected (1)" }
+            -1 { Write-Output "$key: Not-Applicable/Unknown (-1)" }
+            default { Write-Output "$key: Unknown value ($value)" }
+        }
     }
 
-    # Check Memory usage
-    if ($memUsage -ge $memThreshold) {
-        Write-Output "WARNING: Memory Usage is high at $memUsage% (Threshold: $memThreshold%)"
-    } else {
-        Write-Output "Memory Usage: $memUsage% (Normal)"
-    }
-
-    # Check Disk usage
-    if ($diskUsage -ge $diskThreshold) {
-        Write-Output "WARNING: Disk Usage is high at $diskUsage% (Threshold: $diskThreshold%)"
-    } else {
-        Write-Output "Disk Usage: $diskUsage% (Normal)"
-    }
-
-    # Check Disk Errors
-    if ($diskErrors -ge $diskErrorThreshold) {
-        Write-Output "WARNING: Disk Errors detected - $diskErrors errors (Threshold: $diskErrorThreshold)"
-    } else {
-        Write-Output "Disk Errors: $diskErrors (Normal)"
+    # Print the data metrics
+    Write-Output "`nData Metrics:"
+    foreach ($key in $dataMetrics.Keys) {
+        $value = $dataMetrics[$key]
+        Write-Output "$key: $value"
     }
 }
 
 # Example usage of the function
-Check-NetScalerHealth -netscalerIP "192.168.1.1" -username "your_username" -password "your_password"
+Get-ADMInstanceDetails -admIP "192.168.1.2" -username "your_adm_username" -password "your_adm_password" -instanceIP "192.168.1.1"
