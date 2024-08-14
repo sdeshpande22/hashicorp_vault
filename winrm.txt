@@ -1,0 +1,9 @@
+              bat '''
+                @echo off
+                powershell -NoProfile -Command ^
+                $securePassword = ConvertTo-SecureString $password -AsPlainText -Force; ^
+                $cred = New-Object System.Management.Automation.PSCredential ($username, $securePassword); ^
+                Invoke-Command -ComputerName 'RemoteMachineName' -ScriptBlock { Enable-PSRemoting -Force }; ^
+                $cimSession = New-CimSession -ComputerName 'RemoteMachineName' -Credential $cred; ^
+                Get-CimInstance -ClassName Win32_OperatingSystem -CimSession $cimSession;" ^
+                '''
