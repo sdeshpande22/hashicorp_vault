@@ -1,9 +1,36 @@
-              bat '''
-                @echo off
-                powershell -NoProfile -Command ^
-                $securePassword = ConvertTo-SecureString $password -AsPlainText -Force; ^
-                $cred = New-Object System.Management.Automation.PSCredential ($username, $securePassword); ^
-                Invoke-Command -ComputerName 'RemoteMachineName' -ScriptBlock { Enable-PSRemoting -Force }; ^
-                $cimSession = New-CimSession -ComputerName 'RemoteMachineName' -Credential $cred; ^
-                Get-CimInstance -ClassName Win32_OperatingSystem -CimSession $cimSession;" ^
-                '''
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'USERNAME', defaultValue: '', description: 'Username for authentication')
+        password(name: 'PASSWORD', defaultValue: '', description: 'Password for authentication')
+        text(name: 'SERVERS', defaultValue: 'Server1\nServer2', description: 'Comma-separated list of servers or one server per line')
+    }
+
+    stages {
+        stage('Run PowerShell Commands') {
+            steps {
+                script {
+                    // Split the servers parameter into a list
+                    def servers = params.SERVERS.split("\\r?\\n")
+                    
+                    servers.each { server ->
+                        bat """
+                        @echo off
+
+                        :: Define the PowerShell script to be executed
+                        powershell -NoProfile -Command `
+                        $username = '${params.USERNAME}'; `
+                        $password = '${params.PASSWORD}'; `
+                        $securePassword = ConvertTo-SecureString $password -AsPlainText -Force; `
+                        $cred = New-Object System.Management.Automation.PSCredential ($username, $securePassword); `
+                        Invoke-Command -ComputerName '${server}' -ScriptBlock { Enable-PSRemoting -Force }; `
+                        $cimSession = New-CimSession -ComputerName '${server}' -Credential $cred; `
+                        Get-CimInstance -ClassName Win32_OperatingSystem -CimSession $cimSession;
+                        """
+                    }
+                }
+            }
+        }
+    }
+}
