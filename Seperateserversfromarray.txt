@@ -1,0 +1,20 @@
+# Read the server list from a file
+$servers = Get-Content -Path "C:\path\to\your\file.txt"
+
+# Loop through each server and create a unique variable for it
+$counter = 1
+foreach ($server in $servers) {
+    # Generate variable name dynamically
+    $varName = "server$counter"
+
+    # Create the variable with the server name
+    Set-Variable -Name $varName -Value $server
+
+    # Increment the counter
+    $counter++
+}
+
+# Display the variables to verify
+$server1
+$server2
+# Add as many as needed based on the file contents
