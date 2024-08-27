@@ -1,0 +1,72 @@
+// vars/globalVar.groovy
+def myVar = 'This is a global variable'
+
+// You can also define methods
+def printVar() {
+    echo "Variable value: ${myVar}"
+}
+
+globalVar.printVar() // Outputs: Variable value: This is a global variable
+#######################
+// vars/helper.groovy
+def call() {
+    def localVar = 'This is a local variable'
+    echo "Local variable value: ${localVar}"
+}
+helper() // Outputs: Local variable value: This is a local variable
+###
+2. Use Variables in src Directory
+
+// Class with Variables:
+
+// src/com/company/Config.groovy
+package com.company
+
+class Config {
+    static final String VAR1 = "value1"
+    static final String VAR2 = "value2"
+
+    static String getVar3() {
+        return "value3"
+    }
+}
+In your pipeline:
+import com.company.Config
+
+echo Config.VAR1 // Outputs: value1
+echo Config.getVar3() // Outputs: value3
+#####################################
+
+4. Passing Parameters to Functions
+Variables can also be passed as parameters to functions in your shared library.
+
+groovy
+Copy code
+// vars/myFunction.groovy
+def call(String param1, int param2) {
+    echo "Parameter 1: ${param1}"
+    echo "Parameter 2: ${param2}"
+}
+In your pipeline:
+
+myFunction('value1', 123) // Outputs: Parameter 1: value1, Parameter 2: 123
+########################################################
+5. Using Global Variables Across Pipelines
+If you have variables that you want to use across multiple pipelines, consider defining them in a global configuration file within your shared library.
+
+
+// vars/globalConfig.groovy
+def call() {
+    return [
+        'APP_ENV': 'production',
+        'DB_USER': 'admin',
+        'DB_PASSWORD': 'password123'
+    ]
+}
+In your pipeline:
+
+groovy
+
+def config = globalConfig()
+echo "Environment: ${config.APP_ENV}"
+This setup allows you to manage configurations centrally and reuse them across multiple Jenkinsfiles.
