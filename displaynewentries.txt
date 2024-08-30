@@ -1,0 +1,45 @@
+# Define the function to fetch log entries
+function Get-LogEntries {
+    # Replace with the actual command to fetch log entries
+    # This is a placeholder command and should be replaced with actual implementation
+    $logEntries = Invoke-RestMethod -Uri "http://example.com/api/logentries" -Method Get
+    return $logEntries
+}
+
+# Define the function to check for new log entries
+function Check-LogEntries {
+    # Define the time interval (5 minutes)
+    $sleepInterval = 5 * 60  # 5 minutes in seconds
+
+    # Initialize a hash set to track seen log entries
+    $seenEntries = @{}
+
+    # Fetch initial log entries and store them as seen
+    $initialEntries = Get-LogEntries
+    foreach ($entry in $initialEntries) {
+        $seenEntries[$entry.Id] = $entry
+    }
+
+    while ($true) {
+        Write-Output "Checking for new log entries..."
+
+        # Wait for the specified time interval
+        Start-Sleep -Seconds $sleepInterval
+
+        # Fetch the current log entries
+        $currentEntries = Get-LogEntries
+
+        # Compare current entries with seen entries
+        foreach ($entry in $currentEntries) {
+            if (-not $seenEntries.ContainsKey($entry.Id)) {
+                # Display new log entry
+                Write-Output "New log entry: $($entry.Id) - $($entry.Message)"
+                # Add new entry to the seen entries
+                $seenEntries[$entry.Id] = $entry
+            }
+        }
+    }
+}
+
+# Call the function to check for new log entries
+Check-LogEntries
