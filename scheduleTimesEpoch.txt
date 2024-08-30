@@ -11,3 +11,16 @@ $unixTimestamp = [math]::Floor(($currentDateTime - $epochStart).TotalSeconds)
 # Output the formatted date and time and Unix timestamp
 $formattedDateTime
 $unixTimestamp
+
+#######################################################
+# Define the epoch time (Unix timestamp)
+$epochTime = 1672522562 # Example Unix epoch time
+
+# Convert epoch time to DateTime
+$epochStart = [datetime]::UtcNow
+$epochStart = [datetime]'1970-01-01T00:00:00Z'
+$dateTime = $epochStart.AddSeconds($epochTime)
+
+# Output the result
+$dateTime
+
