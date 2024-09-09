@@ -3,8 +3,9 @@ $secondary_ns_ips = @()
 $standalone_ns_ips = @()
 $HAdevice_ns_ips = @()
 
-# Hashtable to store the mapping of primary-secondary pairs
-$HADevicePairs = @{}
+# Arrays for HA device pairs and standalone devices
+$HADevicePairs = @()
+$StandaloneDevices = @()
 
 foreach ($Netscaler in $Netscalers) {
     $deviceinfo = (Invoke-RestMethod -Uri "https://$($Global:ADM)/nitro/v2/config/ns?filter=ip_address:$Netscaler" -Method Get -WebSession $admSession.websession -ErrorAction Stop).ns
@@ -12,38 +13,25 @@ foreach ($Netscaler in $Netscalers) {
     if ($deviceinfo.instance_mode -eq "Primary" -and $deviceinfo.is_ha_configured -eq $true) {
         CTX-Logging-DisplayPipelineUpdate -Message "$($deviceinfo.hostname) Primary HA Device Added"
         $primary_ns_ips += $Netscaler
-
-        # Initialize or update the HA pair with primary device
-        if (-not $HADevicePairs.ContainsKey($Netscaler)) {
-            $HADevicePairs[$Netscaler] = @{}
-        }
-        $HADevicePairs[$Netscaler]['Primary'] = $Netscaler
     }
     elseif ($deviceinfo.instance_mode -eq "Secondary" -and $deviceinfo.is_ha_configured -eq $true) {
         CTX-Logging-DisplayPipelineUpdate -Message "$($deviceinfo.hostname) Secondary HA Device Added"
         $secondary_ns_ips += $Netscaler
 
-        # Find the corresponding primary (assuming it's already been processed), and pair it
+        # Find the corresponding primary and pair them
         $primaryKey = $primary_ns_ips | Where-Object { $_ -eq $Netscaler }
         if ($primaryKey) {
-            if (-not $HADevicePairs.ContainsKey($primaryKey)) {
-                $HADevicePairs[$primaryKey] = @{}
-            }
-            $HADevicePairs[$primaryKey]['Secondary'] = $Netscaler
+            $HADevicePairs += "$primaryKey-$Netscaler"
         }
     }
     elseif ($deviceinfo.instance_mode -eq "Primary" -and $deviceinfo.is_ha_configured -eq $false) {
         CTX-Logging-DisplayPipelineUpdate -Message "$($deviceinfo.hostname) Standalone Device Added"
-        $standalone_ns_ips += $Netscaler
+        $StandaloneDevices += $Netscaler
     }
 }
 
-# After the loop, combine Primary-Secondary pairs
-foreach ($key in $HADevicePairs.Keys) {
-    if ($HADevicePairs[$key]['Primary'] -and $HADevicePairs[$key]['Secondary']) {
-        $HAdevice_ns_ips += "$($HADevicePairs[$key]['Primary'])-$($HADevicePairs[$key]['Secondary'])"
-    }
-}
+# Create the final DeviceMapping with HA pairs and standalone devices, comma-separated
+$DeviceMapping = $HADevicePairs + $StandaloneDevices
 
-# Output or use the concatenated $HAdevice_ns_ips as needed
-$HAdevice_ns_ips
+# Output or use $DeviceMapping as needed
+$DeviceMapping
