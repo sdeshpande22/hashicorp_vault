@@ -1,0 +1,44 @@
+# Set variables for API URL and credentials
+$admMgmtIP = "https://<MGMT-IP>"
+$apiUrl = "$admMgmtIP/nitro/v2/config/adc_script?action=run;onerror=CONTINUE"
+$authHeader = @{
+    'X-NITRO-USER' = 'your-username'
+    'X-NITRO-PASS' = 'your-password'
+}
+
+# Set ADC device IP or ID (replace with actual values)
+$adc_id = "<ADC_ID>"  # Use ADC IP address or ID
+
+# Define the script commands to disable specific alarms
+$commands = @"
+# Example commands to disable specific alarms
+# Replace these with actual commands for your alarms
+set snmp alarm -type CPU-USAGE -threshold 90 -action disable
+set snmp alarm -type MEMORY-USAGE -threshold 80 -action disable
+set snmp alarm -type DISK-USAGE -threshold 85 -action disable
+"@
+
+# Define the API payload with the commands directly
+$payload = @{
+    adc_script = @{
+        timeout = 600  # Timeout in seconds
+        output_file_paths = @("/var/ns_backup")  # Output directory where files are saved
+        output_files = @(
+            @{
+                contents = ""
+                file_path = "/var/ns_backup"
+                format = "txt"
+            }
+        )
+        command = $commands  # Direct shell commands to disable alarms
+        filename = ""  # No need for a script filename
+        adc_id = $adc_id
+        script_directory = "/var/scripts"
+    }
+} | ConvertTo-Json
+
+# Send the API request to Citrix ADM to execute the script
+$response = Invoke-RestMethod -Uri $apiUrl -Method Post -Headers $authHeader -Body $payload -ContentType "application/json"
+
+# Output the response
+$response
