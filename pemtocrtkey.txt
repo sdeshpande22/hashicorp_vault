@@ -1,0 +1,54 @@
+# Define the path to the PEM file containing raw Base64 data
+$inputPemFile = "path\to\your\raw_base64_file.pem"
+$certOutputFile = "path\to\output\certificate.crt"
+$keyOutputFile = "path\to\output\private.key"
+
+# Read the contents of the PEM file
+$pemContent = Get-Content -Path $inputPemFile -Raw
+
+# Split the content into lines (if it's multiline)
+$lines = $pemContent -split "`n"
+
+# Initialize variables to store the certificate and key data
+$crt = ""
+$key = ""
+
+# Identify whether the data is for certificate or private key
+if ($lines.Count -eq 1) {
+    # Assume single line Base64 (raw format)
+    $rawBase64 = $lines[0].Trim()
+    $crt = "-----BEGIN CERTIFICATE-----`n"
+    $crt += ($rawBase64 -replace ".{64}", '$&`n')  # Add line breaks every 64 characters
+    $crt += "-----END CERTIFICATE-----"
+} else {
+    # If multiple lines, extract certificate and key
+    $inCertSection = $false
+    $inKeySection = $false
+    
+    foreach ($line in $lines) {
+        if ($line -like "-----BEGIN PRIVATE KEY-----") {
+            $inKeySection = $true
+        } elseif ($line -like "-----END PRIVATE KEY-----") {
+            $inKeySection = $false
+        }
+        
+        if ($inKeySection) {
+            $key += $line + "`n"
+        } else {
+            $crt += $line + "`n"  # Assuming the rest is the certificate
+        }
+    }
+    
+    # If the certificate section is missing headers, wrap it
+    if ($crt -notlike "-----BEGIN CERTIFICATE-----*") {
+        $crt = "-----BEGIN CERTIFICATE-----`n"
+        $crt += ($crt -replace ".{64}", '$&`n')  # Add line breaks every 64 characters
+        $crt += "-----END CERTIFICATE-----"
+    }
+}
+
+# Save the extracted certificate and key to separate files
+Set-Content -Path $certOutputFile -Value $crt.Trim()
+Set-Content -Path $keyOutputFile -Value $key.Trim()
+
+Write-Host "Extraction and conversion completed. Certificate saved to '$certOutputFile' and Key saved to '$keyOutputFile'."
