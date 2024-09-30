@@ -3,14 +3,18 @@ $opensslPath = "C:\path\to\openssl.exe"  # Full path to openssl.exe
 $pfxFilePath = "C:\path\to\yourfile.pfx"
 $keyFilePath = "C:\path\to\yourfile.key"
 $crtFilePath = "C:\path\to\yourfile.crt"
+$rsaKeyFilePath = "C:\path\to\yourfile_rsa.key"
+$decryptedKeyFilePath = "C:\path\to\yourfile_decrypted.key"  # Path for decrypted RSA key
 $password = "your_common_password"  # Common password for both PFX and the key
 
 # Extract the private key in PEM format (which is typically RSA format)
 Start-Process -FilePath $opensslPath -ArgumentList "pkcs12 -in `"$pfxFilePath`" -nocerts -out `"$keyFilePath`" -passin pass:$password -passout pass:$password" -NoNewWindow -Wait
 
 # Convert the private key to RSA format
-$rsaKeyFilePath = "C:\path\to\yourfile_rsa.key"  # Path to save the RSA formatted key
 Start-Process -FilePath $opensslPath -ArgumentList "rsa -in `"$keyFilePath`" -out `"$rsaKeyFilePath`" -passin pass:$password" -NoNewWindow -Wait
 
-# Extract certificate with PFX import password
+# Decrypt the private key
+Start-Process -FilePath $opensslPath -ArgumentList "rsa -in `"$keyFilePath`" -out `"$decryptedKeyFilePath`" -passin pass:$password -nodes" -NoNewWindow -Wait
+
+# Extract the certificate with PFX import password
 Start-Process -FilePath $opensslPath -ArgumentList "pkcs12 -in `"$pfxFilePath`" -clcerts -nokeys -out `"$crtFilePath`" -passin pass:$password" -NoNewWindow -Wait
