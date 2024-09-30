@@ -1,12 +1,12 @@
-# Variables for file paths and passwords
+# Variables for file paths and password
 $opensslPath = "C:\path\to\openssl.exe"  # Full path to openssl.exe
 $pfxFilePath = "C:\path\to\yourfile.pfx"
 $keyFilePath = "C:\path\to\yourfile.key"
 $crtFilePath = "C:\path\to\yourfile.crt"
-$keyPassword = "your_key_password"  # Password to protect the private key
+$password = "your_common_password"  # Common password for both PFX and the key
 
-# Extract private key
-Start-Process -FilePath $opensslPath -ArgumentList "pkcs12 -in `"$pfxFilePath`" -nocerts -out `"$keyFilePath`" -passout pass:$keyPassword" -NoNewWindow -Wait
+# Extract private key with PFX import password and set a password on the key
+Start-Process -FilePath $opensslPath -ArgumentList "pkcs12 -in `"$pfxFilePath`" -nocerts -out `"$keyFilePath`" -passin pass:$password -passout pass:$password" -NoNewWindow -Wait
 
-# Extract certificate
-Start-Process -FilePath $opensslPath -ArgumentList "pkcs12 -in `"$pfxFilePath`" -clcerts -nokeys -out `"$crtFilePath`"" -NoNewWindow -Wait
+# Extract certificate with PFX import password
+Start-Process -FilePath $opensslPath -ArgumentList "pkcs12 -in `"$pfxFilePath`" -clcerts -nokeys -out `"$crtFilePath`" -passin pass:$password" -NoNewWindow -Wait
