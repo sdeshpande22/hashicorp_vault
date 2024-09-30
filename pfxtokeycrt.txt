@@ -5,12 +5,8 @@ $keyFilePath = "C:\path\to\yourfile.key"
 $crtFilePath = "C:\path\to\yourfile.crt"
 $keyPassword = "your_key_password"  # Password to protect the private key
 
-# OpenSSL command to extract the private key and protect it with a password
-$opensslExtractKeyCmd = "`"$opensslPath`" pkcs12 -in `"$pfxFilePath`" -nocerts -out `"$keyFilePath`" -passout pass:$keyPassword"
+# Extract private key
+Start-Process -FilePath $opensslPath -ArgumentList "pkcs12 -in `"$pfxFilePath`" -nocerts -out `"$keyFilePath`" -passout pass:$keyPassword" -NoNewWindow -Wait
 
-# OpenSSL command to extract the certificate
-$opensslExtractCertCmd = "`"$opensslPath`" pkcs12 -in `"$pfxFilePath`" -clcerts -nokeys -out `"$crtFilePath`""
-
-# Execute the commands in PowerShell
-Invoke-Expression $opensslExtractKeyCmd
-Invoke-Expression $opensslExtractCertCmd
+# Extract certificate
+Start-Process -FilePath $opensslPath -ArgumentList "pkcs12 -in `"$pfxFilePath`" -clcerts -nokeys -out `"$crtFilePath`"" -NoNewWindow -Wait
