@@ -1,0 +1,15 @@
+# Variables for file paths and passwords
+$pfxFilePath = "C:\path\to\yourfile.pfx"
+$keyFilePath = "C:\path\to\yourfile.key"
+$crtFilePath = "C:\path\to\yourfile.crt"
+$keyPassword = "your_key_password"  # Password to protect the private key
+
+# OpenSSL command to extract the private key and protect it with a password
+$opensslExtractKeyCmd = "openssl pkcs12 -in `"$pfxFilePath`" -nocerts -out `"$keyFilePath`" -passout pass:$keyPassword"
+
+# OpenSSL command to extract the certificate
+$opensslExtractCertCmd = "openssl pkcs12 -in `"$pfxFilePath`" -clcerts -nokeys -out `"$crtFilePath`""
+
+# Execute the commands in PowerShell
+Invoke-Expression $opensslExtractKeyCmd
+Invoke-Expression $opensslExtractCertCmd
