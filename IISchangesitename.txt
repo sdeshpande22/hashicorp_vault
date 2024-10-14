@@ -1,0 +1,12 @@
+# Define the full path to appcmd.exe
+$appcmdPath = "C:\Windows\SysWOW64\inetsrv\appcmd.exe"
+
+# Define the current and new site names
+$currentName = "ExistingSiteName"
+$newName = "NewSiteName"
+
+# Execute the appcmd command to rename the IIS site
+& $appcmdPath set site /site.name:"$currentName" /name:"$newName"
+
+# Confirm the change
+Write-Host "IIS site renamed from $currentName to $newName."
