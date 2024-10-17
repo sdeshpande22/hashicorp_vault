@@ -1,0 +1,34 @@
+Tech stack
+1. APIs - Java Spring Boot
+Java Spring Boot is a powerful framework for building RESTful APIs which has Built-in support for microservices architecture.
+Supports secure API development with easy integration of authentication and authorization mechanisms
+
+2. UI - Ant Design (ReactJS)
+Ant Design, a popular React UI framework which is Suitable for enterprise-level applications where design uniformity and responsiveness are critical.
+
+3. Forecasting - Python, AI/ML
+Python, combined with AI/ML libraries (such as Pandas, numpy, Scikit-learn, matplotlib, Natural Language Toolkit (NLTK) that helps with natural language processing (NLP).), is widely used for forecasting and predictive analytics.
+
+4. Visualization - Qlik Sense
+Qlik Sense is data visualization and business intelligence tool that allows users to create visual representations of data and its data-driven feature helps in decision-making.
+
+5. Databases - H2, Oracle, PostgreSQL, MySQL
+relational databases.
+
+Progress so far
+1. UI Development
+The user interface (UI) has been designed and implemented as part of the POC which provides a responsive, user-friendly experience ensuring smooth interaction with the system.
+
+2. Data Model
+The data model has been structured and finalized.It lays the foundation for efficient data storage, retrieval, and manipulation, ensuring data consistency across modules.
+
+3. API Development
+Core API development has been completed.
+Enables  communication between different components, ensuring scalability and flexibility for future enhancements.
+
+4. Forecasting
+Initial forecasting models using AI/ML have been built.
+Provides predictive insights that enhance decision-making capabilities, especially for future trends and performance projections.
+
+5. Visualization
+Qlik sense Visualization tools have been explored to Offer clear, actionable insights through data visualization, aiding in better analysis, decision making and reporting.
