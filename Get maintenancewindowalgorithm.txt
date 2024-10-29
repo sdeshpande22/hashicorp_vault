@@ -1,0 +1,37 @@
+function get_maintenance_dates(year, month, weekday, weeks_needed):
+    # Step 1: Set default values if year or month are not specified
+    if year is None:
+        year = current year
+    if month is None:
+        month = current month
+
+    # Step 2: Validate inputs
+    if weekday is outside range 0-6:
+        raise ValueError("Weekday must be between 0 (Monday) and 6 (Sunday)")
+    if any week in weeks_needed is invalid (not a positive integer):
+        raise ValueError("All weeks in weeks_needed must be positive integers")
+
+    # Step 3: Calculate the number of days in the month
+    total_days = number of days in the given month of year
+
+    # Step 4: Find specified weekdays in each week of the month
+    maintenance_dates = empty list
+    found_weeks = empty set to track valid weeks
+
+    for day in range from 1 to total_days:
+        date = create date from year, month, day
+
+        if date's weekday matches specified weekday:
+            week_number = (day - 1) // 7 + 1  # Calculate 1-based week number
+
+            if week_number in weeks_needed:
+                add date to maintenance_dates
+            add week_number to found_weeks
+
+    # Step 5: Validate if requested weeks exist in found_weeks
+    for week in weeks_needed:
+        if week is not in found_weeks:
+            raise ValueError("Requested week does not contain the specified weekday")
+
+    # Step 6: Return or display the results
+    return maintenance_dates
