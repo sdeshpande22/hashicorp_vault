@@ -12,60 +12,68 @@ def get_maintenance_window(year=None, month=None, weekday=calendar.TUESDAY, week
     :return: A list of dates for the specified occurrences of the weekday.
     """
     
-    # Validate weekday input
+    # Validate weekday input to ensure it is within 0-6, corresponding to Monday-Sunday.
     if weekday < 0 or weekday > 6:
         raise ValueError("Invalid weekday. It must be between 0 (Monday) and 6 (Sunday).")
     
-    # Validate weeks_needed input
+    # Validate that weeks_needed contains only positive integers.
     if not all(isinstance(week, int) and week > 0 for week in weeks_needed):
         raise ValueError("Invalid weeks_needed. All week numbers must be positive integers.")
 
-    # Use the current year and month if not specified
+    # Use the current year and month if they are not specified by the user.
     if year is None or month is None:
-        today = datetime.today()  # Get the current date
-        year = year or today.year  # Set year to current year if not provided
-        month = month or today.month  # Set month to current month if not provided
+        today = datetime.today()  # Get the current date for reference.
+        year = year or today.year  # If year is None, set it to the current year.
+        month = month or today.month  # If month is None, set it to the current month.
 
-    # Get the total number of days in the specified month
-    total_days = calendar.monthrange(year, month)[1]
+    # Determine the total number of days in the specified month.
+    total_days = calendar.monthrange(year, month)[1]  # calendar.monthrange returns (start_day, total_days).
     
-    # Initialize a list to hold the maintenance dates
+    # Initialize a list to hold the maintenance dates that match the specified weekday and week number.
     maintenance_dates = []
     
-    # Initialize a set to track which weeks contain the specified weekday
+    # Use a set to track which weeks actually contain the specified weekday.
     found_weeks = set()
     
-    # Iterate over the days of the month
+    # Iterate through each day of the month.
     for day in range(1, total_days + 1):
-        date = datetime(year, month, day)  # Create a date object for the current day
+        date = datetime(year, month, day)  # Create a date object for the current day.
         
-        # Check if the current day matches the specified weekday
+        # Check if the current date's weekday matches the specified weekday.
         if date.weekday() == weekday:
-            week_number = (day - 1) // 7 + 1  # Calculate the week number (1-based)
-            maintenance_dates.append(date)  # Add the date to the maintenance dates list
-            found_weeks.add(week_number)  # Track found weeks
+            # Calculate the 1-based week number (1 for the first week, 2 for the second, etc.).
+            week_number = (day - 1) // 7 + 1
+            # If the week_number is one of the needed weeks, add the date to maintenance_dates.
+            if week_number in weeks_needed:
+                maintenance_dates.append(date)
+            # Add the week_number to found_weeks to track that this week contains the specified weekday.
+            found_weeks.add(week_number)
 
-    # Calculate the maximum number of weeks based on the first day of the month
-    first_day_of_month = datetime(year, month, 1).weekday()  # Get the weekday of the first day
-    last_day_of_month = (first_day_of_month + total_days - 1) % 7  # Get the weekday of the last day
-    max_weeks = (total_days + first_day_of_month + 6) // 7  # Calculate max weeks in the month
+    # Determine the maximum number of weeks in the month based on its layout.
+    first_day_of_month = datetime(year, month, 1).weekday()  # Get the weekday of the first day of the month.
+    # Calculate max weeks by dividing total days with consideration of the starting weekday.
+    max_weeks = (total_days + first_day_of_month + 6) // 7
 
-    # Validate the requested weeks against the found weeks
+    # Validate that each requested week in weeks_needed is valid and contains the specified weekday.
     for week in weeks_needed:
+        # Raise an error if the requested week is beyond the calculated maximum weeks.
         if week > max_weeks:
             raise ValueError(f"Invalid week number {week}. The maximum number of weeks in {calendar.month_name[month]} {year} is {max_weeks}.")
+        # Raise an error if the specified weekday does not exist in the requested week.
         if week not in found_weeks:
-            raise ValueError(f"Week number {week} does not exist in {calendar.month_name[month]} {year} for the specified weekday.")
+            raise ValueError(f"Week number {week} does not contain the specified weekday in {calendar.month_name[month]} {year}.")
 
-    return maintenance_dates  # Return the list of maintenance dates
+    # Return the list of maintenance dates that match the specified weeks and weekday.
+    return maintenance_dates
 
 # Example usage without specifying year and month (defaults to current year and month)
 try:
-    maintenance_windows = get_maintenance_window(weekday=calendar.TUESDAY, weeks_needed=[2, 3])
+    # Get maintenance windows for 2nd, 3rd, and 5th Tuesday of the current month
+    maintenance_windows = get_maintenance_window(weekday=calendar.TUESDAY, weeks_needed=[2, 3, 5])
 
     # Output the results
-    for week_num, date in zip([2, 3], maintenance_windows):
-        print(f"Maintenance window on {week_num} week of {calendar.day_name[calendar.TUESDAY]} is: {date.strftime('%Y-%m-%d')}")
+    for date in maintenance_windows:
+        print(f"Maintenance window on {date.strftime('%A, %Y-%m-%d')}")
 
 except ValueError as e:
     print(f"Error: {e}")
