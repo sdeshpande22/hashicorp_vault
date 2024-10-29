@@ -1,0 +1,61 @@
+import calendar
+from datetime import datetime
+
+def get_maintenance_window(year, month, weekday, weeks_needed):
+    """
+    Get the occurrences of a specified weekday in a given month and year for maintenance windows.
+
+    :param year: The year of the desired month.
+    :param month: The month of the desired year.
+    :param weekday: The day of the week as a string (e.g., "Monday", "Tuesday", etc.).
+    :param weeks_needed: A list of week numbers to retrieve (e.g., [2, 3]).
+    :return: A list of dates for the specified occurrences of the weekday.
+    """
+    
+    # Ensure weekday is provided and convert it to corresponding integer
+    if weekday is None:
+        raise ValueError("Please specify a weekday as a string (e.g., 'Tuesday').")
+    
+    try:
+        weekday = list(calendar.day_name).index(weekday)
+    except ValueError:
+        raise ValueError("Invalid weekday. Please enter a valid weekday name (e.g., 'Monday').")
+    
+    if not all(isinstance(week, int) and week > 0 for week in weeks_needed):
+        raise ValueError("Invalid weeks_needed. All week numbers must be positive integers.")
+
+    # Determine the total number of days in the specified month
+    total_days = calendar.monthrange(year, month)[1]
+    
+    # Initialize a list to hold the maintenance dates that match the specified weekday and week number
+    maintenance_dates = []
+    
+    # Iterate through each day of the month
+    for day in range(1, total_days + 1):
+        date = datetime(year, month, day)
+        
+        # Check if the current date's weekday matches the specified weekday
+        if date.weekday() == weekday:
+            # Calculate the 1-based week number (1 for the first week, 2 for the second, etc.)
+            week_number = (day - 1) // 7 + 1
+            
+            # If the week_number is one of the needed weeks, add the date to maintenance_dates
+            if week_number in weeks_needed:
+                maintenance_dates.append(date)
+
+    # Return the list of maintenance dates that match the specified weeks and weekday
+    return maintenance_dates
+
+# Example usage for November
+year = 2024
+month = 11
+weekday_name = "Tuesday"  # Specify the weekday you're checking
+weeks_needed = [5]  # Check for week 5
+
+maintenance_windows = get_maintenance_window(year=year, month=month, weekday=weekday_name, weeks_needed=weeks_needed)
+
+if maintenance_windows:
+    for date in maintenance_windows:
+        print(f"Maintenance window on {date.strftime('%A, %Y-%m-%d')}")
+else:
+    print(f"Week number {weeks_needed[0]} does not contain {weekday_name} in {month}/{year}.")
