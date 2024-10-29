@@ -1,0 +1,90 @@
+import calendar
+from datetime import datetime
+import logging
+
+# Set up logging configuration
+logging.basicConfig(
+    level=logging.DEBUG,  # Log all levels of messages
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("maintenance_log.log"),  # Output logs to a file
+        logging.StreamHandler()  # Optionally, print logs to console
+    ]
+)
+
+def get_maintenance_window(year=None, month=None, weekday=calendar.TUESDAY, weeks_needed=[2, 3]):
+    """
+    Get the occurrences of a specified weekday in a given month and year for maintenance windows.
+    
+    :param year: The year of the desired month. If None, uses the current year.
+    :param month: The month of the desired year. If None, uses the current month.
+    :param weekday: The day of the week (0=Monday, 1=Tuesday, ..., 6=Sunday).
+    :param weeks_needed: List of week numbers to retrieve (e.g., [2, 3]).
+    :return: A list of dates for the specified occurrences of the weekday.
+    """
+    logging.info("Starting maintenance window calculation")
+
+    # Validate weekday input
+    if weekday < 0 or weekday > 6:
+        logging.error(f"Invalid weekday: {weekday}")
+        raise ValueError("Invalid weekday. It must be between 0 (Monday) and 6 (Sunday).")
+    
+    # Validate weeks_needed input
+    if not all(isinstance(week, int) and week > 0 for week in weeks_needed):
+        logging.error(f"Invalid weeks_needed: {weeks_needed}")
+        raise ValueError("Invalid weeks_needed. All week numbers must be positive integers.")
+    
+    # Use the current year and month if not specified
+    if year is None or month is None:
+        today = datetime.today()  # Get the current date
+        year = year or today.year
+        month = month or today.month
+        logging.info(f"Defaulting to current year and month: {year}-{month}")
+    
+    # Get the total number of days in the specified month
+    total_days = calendar.monthrange(year, month)[1]
+    logging.debug(f"Total days in {calendar.month_name[month]} {year}: {total_days}")
+
+    # Initialize list to hold maintenance dates
+    maintenance_dates = []
+    
+    # Initialize set to track weeks containing the specified weekday
+    found_weeks = set()
+    
+    # Iterate over each day of the month to find matching weekdays
+    for day in range(1, total_days + 1):
+        date = datetime(year, month, day)
+        
+        if date.weekday() == weekday:
+            week_number = (day - 1) // 7 + 1  # Calculate the 1-based week number
+            if week_number in weeks_needed:
+                maintenance_dates.append(date)
+                logging.debug(f"Adding date {date.strftime('%Y-%m-%d')} for week {week_number}")
+            found_weeks.add(week_number)
+    
+    # Calculate max number of weeks in the month
+    first_day_of_month = datetime(year, month, 1).weekday()
+    max_weeks = (total_days + first_day_of_month + 6) // 7
+    logging.debug(f"Max weeks in {calendar.month_name[month]} {year}: {max_weeks}")
+
+    # Validate the requested weeks against found weeks
+    for week in weeks_needed:
+        if week > max_weeks:
+            logging.error(f"Invalid week number {week}. Max weeks: {max_weeks}")
+            raise ValueError(f"Invalid week number {week}. The maximum number of weeks in {calendar.month_name[month]} {year} is {max_weeks}.")
+        if week not in found_weeks:
+            logging.error(f"Week number {week} does not contain the specified weekday in {calendar.month_name[month]} {year}.")
+            raise ValueError(f"Week number {week} does not contain the specified weekday in {calendar.month_name[month]} {year}.")
+
+    logging.info("Maintenance window calculation completed successfully")
+    return maintenance_dates
+
+# Example usage with logging
+try:
+    maintenance_windows = get_maintenance_window(weekday=calendar.TUESDAY, weeks_needed=[2, 3, 5])
+
+    for date in maintenance_windows:
+        print(f"Maintenance window on {date.strftime('%A, %Y-%m-%d')}")
+
+except ValueError as e:
+    logging.error(f"Error: {e}")
