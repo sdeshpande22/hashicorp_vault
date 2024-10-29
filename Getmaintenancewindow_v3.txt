@@ -12,12 +12,9 @@ def get_maintenance_window(year, month, weekday, weeks_needed):
     :return: A list of dates for the specified occurrences of the weekday.
     """
     
-    # Ensure weekday is provided and convert it to corresponding integer
-    if weekday is None:
-        raise ValueError("Please specify a weekday as a string (e.g., 'Tuesday').")
-    
+    # Convert weekday string to integer
     try:
-        weekday = list(calendar.day_name).index(weekday)
+        weekday_index = list(calendar.day_name).index(weekday)
     except ValueError:
         raise ValueError("Invalid weekday. Please enter a valid weekday name (e.g., 'Monday').")
     
@@ -35,15 +32,17 @@ def get_maintenance_window(year, month, weekday, weeks_needed):
         date = datetime(year, month, day)
         
         # Check if the current date's weekday matches the specified weekday
-        if date.weekday() == weekday:
+        if date.weekday() == weekday_index:
             # Calculate the 1-based week number (1 for the first week, 2 for the second, etc.)
             week_number = (day - 1) // 7 + 1
+            
+            # Debugging output to track week numbers
+            print(f"Date: {date.strftime('%Y-%m-%d')}, Week Number: {week_number}")
             
             # If the week_number is one of the needed weeks, add the date to maintenance_dates
             if week_number in weeks_needed:
                 maintenance_dates.append(date)
 
-    # Return the list of maintenance dates that match the specified weeks and weekday
     return maintenance_dates
 
 # Example usage for November
