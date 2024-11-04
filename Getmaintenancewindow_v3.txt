@@ -1,7 +1,7 @@
 import calendar
-from datetime import datetime, time as dt_time, timezone
+from datetime import datetime, time, timezone
 
-def get_maintenance_window(weeks_needed, year=None, month=None, weekday=None, time=None):
+def get_maintenance_window(weeks_needed, year=None, month=None, weekday=None, time_utc=None):
     """
     Get the occurrences of a specified weekday in a given month and year for maintenance windows in UTC.
     
@@ -9,7 +9,7 @@ def get_maintenance_window(weeks_needed, year=None, month=None, weekday=None, ti
     :param year: The year of the desired month. If None, uses the current year.
     :param month: The month of the desired year. If None, uses the current month.
     :param weekday: The day of the week as a string (e.g., "Monday", "Tuesday", etc.). If None, uses the current weekday.
-    :param time: A time object (datetime.time) specifying the hour and minute for the maintenance window in UTC. Defaults to 00:00 UTC.
+    :param time_utc: A tuple specifying the hour and minute for the maintenance window in UTC (e.g., (10, 30)). Defaults to 00:00 UTC.
     :return: A list of datetime objects in UTC for the specified occurrences of the weekday with the given time.
     """
     
@@ -19,8 +19,8 @@ def get_maintenance_window(weeks_needed, year=None, month=None, weekday=None, ti
     month = month or today.month
     weekday = weekday or today.strftime("%A")
 
-    # Default time to 00:00 if not provided
-    time = time or dt_time(0, 0)
+    # Set default time to 00:00 if time_utc is not provided
+    time_obj = time(*time_utc) if time_utc else time(0, 0)
 
     # Convert weekday string (e.g., "Monday") to corresponding integer (e.g., 0 for Monday)
     try:
@@ -57,7 +57,7 @@ def get_maintenance_window(weeks_needed, year=None, month=None, weekday=None, ti
             # If the week number is in weeks_needed, add the date with the specified time to maintenance_dates
             if week_number in weeks_needed:
                 # Combine the date with the specified time and set to UTC
-                maintenance_datetime = datetime.combine(date, time).replace(tzinfo=timezone.utc)
+                maintenance_datetime = datetime.combine(date, time_obj).replace(tzinfo=timezone.utc)
                 maintenance_dates.append(maintenance_datetime)
             
             # Add the week number to found_weeks to confirm it contains the specified weekday
@@ -76,9 +76,9 @@ def get_maintenance_window(weeks_needed, year=None, month=None, weekday=None, ti
 
     return maintenance_dates
 
-# Example usage with time parameter in UTC
+# Example usage with time_utc parameter in UTC
 try:
-    maintenance_windows = get_maintenance_window(weeks_needed="2,3", time=dt_time(10, 30))
+    maintenance_windows = get_maintenance_window(weeks_needed="2,3", time_utc=(10, 30))
     for date in maintenance_windows:
         print(f"Maintenance window on {date.strftime('%A, %Y-%m-%d %H:%M %Z')}")
 
