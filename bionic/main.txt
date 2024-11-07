@@ -56,3 +56,20 @@ proxies = {
 }
 
 response = requests.get(url, proxies=proxies)
+
+import asyncio
+import pdfplumber
+
+async def open_pdf_async(file_path):
+    return await asyncio.to_thread(pdfplumber.open, file_path)
+
+async def main():
+    file_path = "sample.pdf"
+    async with await open_pdf_async(file_path) as pdf:
+        # Now you can work with the pdf file asynchronously
+        for page in pdf.pages:
+            text = page.extract_text()
+            print(text)
+
+# Run the async main function
+asyncio.run(main())
