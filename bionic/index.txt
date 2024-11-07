@@ -1,39 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bionic Reader</title>
-    <link rel="stylesheet" href="static/styles.css">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>Bionic Reader</h1>
-            <p>Enhance your reading experience with bionic reading and summaries.</p>
-        </header>
-        
-        <div class="buttons">
-            <button id="textButton" onclick="selectOption('text')">Text</button>
-            <button id="uploadButton" onclick="selectOption('upload')">Upload</button>
-            <button id="urlButton" onclick="selectOption('url')">URL</button>
-        </div>
+<!-- Summarize Text button -->
+<button id="summarizeTextButton" onclick="summarizeText()">Summarize Text in List Format</button>
 
-        <textarea id="inputText" placeholder="Enter your text here"></textarea>
-        <input type="text" id="inputUrl" placeholder="Enter URL here" style="display: none;">
-        <input type="file" id="inputFile" accept=".txt,.pdf,.docx" style="display: none;">
-
-        <button id="summaryButton" onclick="showSummary()">Show Bionic Output</button>
-        <button id="summarizeTextButton" onclick="summarizeText()">Summarize Text in List Format</button>
-        
-        <div id="bionicOutput">
-            <p>Bionic reading output will appear here...</p>
-        </div>
-        <ul id="summaryOutput">
-            <!-- Summarized output will appear here -->
-        </ul>
-    </div>
-
-    <script src="static/script.js"></script>
-</body>
-</html>
+<!-- Summary output area -->
+<ul id="summaryOutput">
+    <!-- Summarized output will appear here -->
+</ul>
