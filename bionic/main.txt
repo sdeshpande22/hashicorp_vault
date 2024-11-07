@@ -48,3 +48,11 @@ async def fetch_url_content(url: str = Form(...)):
         raise HTTPException(status_code=400, detail=f"Failed to fetch the URL content. Error: {e}")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"An unexpected error occurred: {e}")
+
+
+proxies = {
+    'http': 'http://proxy_address:port',
+    'https': 'https://proxy_address:port',
+}
+
+response = requests.get(url, proxies=proxies)
