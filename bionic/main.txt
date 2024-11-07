@@ -1,0 +1,67 @@
+from fastapi import FastAPI, Form, UploadFile, File, HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+import requests
+from bs4 import BeautifulSoup
+from transformers import pipeline
+from docx import Document
+import fitz
+
+app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Initialize the summarizer
+summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+
+@app.get("/", response_class=HTMLResponse)
+async def get_form():
+    with open("templates/index.html") as file:
+        return HTMLResponse(content=file.read())
+
+@app.post("/convert")
+async def convert_text(text: str = Form(...)):
+    processed_text = process_bionic_reader(text)
+    return {"bionic_text": processed_text}
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    if file.content_type == "text/plain":
+        text = await file.read()
+        text = text.decode("utf-8")
+    elif file.content_type == "application/pdf":
+        text = await extract_text_from_pdf(file)
+    elif file.content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        text = await extract_text_from_docx(file)
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported file type. Only TXT, PDF, and DOCX files are supported.")
+
+    processed_text = process_bionic_reader(text)
+    return {"bionic_text": processed_text}
+
+@app.post("/summarize")
+async def summarize_text(text: str = Form(...)):
+    summary_result = summarizer(text, max_length=100, min_length=30, do_sample=False)
+    summary_text = summary_result[0]['summary_text']
+    summary_points = summary_text.split('. ')
+    summary_points = [point + '.' for point in summary_points if point]
+
+    return {"summary": summary_points}
+
+async def extract_text_from_pdf(file: UploadFile):
+    text = ""
+    with fitz.open(stream=await file.read(), filetype="pdf") as pdf:
+        for page in pdf:
+            text += page.get_text()
+    return text
+
+async def extract_text_from_docx(file: UploadFile):
+    text = ""
+    with open("/tmp/temp.docx", "wb") as f:
+        f.write(await file.read())
+    doc = Document("/tmp/temp.docx")
+    for paragraph in doc.paragraphs:
+        text += paragraph.text + "\n"
+    return text
+
+def process_bionic_reader(text):
+    return " ".join(f"<b>{word[:len(word) // 2]}</b>{word[len(word) // 2:]}" for word in text.split())
