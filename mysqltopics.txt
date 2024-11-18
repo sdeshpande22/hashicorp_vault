@@ -1,0 +1,18 @@
+Rename a column in output
+Select unique values from a table
+Selecting sample of rows from a table
+using where condition
+Like Condition
+NOT Condition
+In Operator
+NULL Condition
+SORTING DATA
+Aggregate Functions
+Group by
+Having Clause
+CASE WHEN STATEMENT
+Window Functions
+Joins
+Common table expression (CTE) 
+Changing the table structure 
+Basics of Stored Procedures
