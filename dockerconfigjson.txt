@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: private-registry-credentials
+  namespace: default
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: <base64-encoded-docker-config-json>
+
+import base64
+import os
+
+# Path to Docker config.json (adjust if necessary)
+docker_config_path = os.path.expanduser("~/.docker/config.json")
+
+# Read the content of the Docker config.json file
+with open(docker_config_path, 'r') as file:
+    docker_config_content = file.read()
+
+# Base64 encode the Docker config content
+encoded_content = base64.b64encode(docker_config_content.encode('utf-8')).decode('utf-8')
+
+# Print the base64 encoded content (equivalent to the bash command)
+print(encoded_content)
