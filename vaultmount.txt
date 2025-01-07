@@ -1,23 +1,34 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: my-app
-  annotations:
-    vault.hashicorp.com/agent-init-first: "true"
-    vault.hashicorp.com/agent-inject: "true"
-    vault.hashicorp.com/agent-inject-secret-db-credentials: "secrets/kv_v2/lap/db-credentials"
 spec:
-  containers:
-  - name: my-app-container
-    image: nexus3.systems.uk.hsbc:18080/hsbc-12637960-ctoepe-epeplft/idp-eda-workflow-manager:latest
-    command:
-    - /bin/sh
-    - "-c"
-    - |
-      export DB_CONN_STR=$(cat /vault/secrets/db-credentials); echo "DB_CONN_STR=$DB_CONN_STR"; ./start-my-app
-    volumeMounts:
-    - name: vault-secret-volume
-      mountPath: /vault/secrets
-  volumes:
-  - name: vault-secret-volume
-    emptyDir: {}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"  # Enable Vault Agent Injector
+        vault.hashicorp.com/agent-inject-secret-db-credentials: "secret/data/db-credentials"  # Vault path to the secret
+    spec:
+      containers:
+        - name: my-app-container
+          image: my-app-image:latest  # Replace with your image name
+          command:
+            - /bin/sh
+            - "-c"
+            - |
+                # Read the contents of the injected Vault secret (db-credentials)
+                export DB_CONN_STR=$(cat /vault/secrets/db-credentials); 
+                exec /path/to/start.sh -DB_CONN_STR="$DB_CONN_STR"
+          volumeMounts:
+            - name: vault-secrets
+              mountPath: /vault/secrets  # Mount the injected secret directory to this path
+              readOnly: true
+      volumes:
+        - name: vault-secrets
+          emptyDir: {}  # Vault Injector mounts the secrets into an emptyDir volume
