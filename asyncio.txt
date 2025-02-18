@@ -11,7 +11,11 @@ PASSWORD = "your_password"
 # Common function to handle HTTP requests
 async def make_request(method, url, payload=None):
     auth = aiohttp.BasicAuth(USERNAME, PASSWORD)
-    async with aiohttp.ClientSession(auth=auth) as session:
+    
+    # Setting ssl=False to disable SSL verification
+    ssl_context = False
+
+    async with aiohttp.ClientSession(auth=auth, connector=aiohttp.TCPConnector(ssl=ssl_context)) as session:
         if method.lower() == 'get':
             async with session.get(url) as response:
                 data = await response.json()
