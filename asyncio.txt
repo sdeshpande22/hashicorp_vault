@@ -1,0 +1,121 @@
+import asyncio
+import aiohttp
+
+# API Base URL
+BASE_URL = "https://jsonplaceholder.typicode.com"
+
+# Username and Password for Basic Authentication
+USERNAME = "your_username"
+PASSWORD = "your_password"
+
+# Common function to handle HTTP requests
+async def make_request(method, url, payload=None):
+    auth = aiohttp.BasicAuth(USERNAME, PASSWORD)
+    async with aiohttp.ClientSession(auth=auth) as session:
+        if method.lower() == 'get':
+            async with session.get(url) as response:
+                data = await response.json()
+                return response.status, data
+        elif method.lower() == 'post':
+            async with session.post(url, json=payload) as response:
+                data = await response.json()
+                return response.status, data
+        elif method.lower() == 'put':
+            async with session.put(url, json=payload) as response:
+                data = await response.json()
+                return response.status, data
+        elif method.lower() == 'patch':
+            async with session.patch(url, json=payload) as response:
+                data = await response.json()
+                return response.status, data
+        elif method.lower() == 'delete':
+            async with session.delete(url) as response:
+                return response.status, await response.text()
+
+# Specific Functions
+
+async def get_posts():
+    status, data = await make_request('get', f"{BASE_URL}/posts")
+    print(f"GET Posts Status: {status}")
+    print(f"Data: {data[:2]}")
+
+async def get_post_by_id(post_id):
+    status, data = await make_request('get', f"{BASE_URL}/posts/{post_id}")
+    print(f"GET Post {post_id} Status: {status}")
+    print(f"Data: {data}")
+
+async def create_post():
+    payload = {
+        "title": "New Post",
+        "body": "This is the content of the new post.",
+        "userId": 1
+    }
+    status, data = await make_request('post', f"{BASE_URL}/posts", payload)
+    print(f"POST Create Post Status: {status}")
+    print(f"Data: {data}")
+
+async def update_post(post_id):
+    payload = {
+        "id": post_id,
+        "title": "Updated Title",
+        "body": "Updated content.",
+        "userId": 1
+    }
+    status, data = await make_request('put', f"{BASE_URL}/posts/{post_id}", payload)
+    print(f"PUT Update Post {post_id} Status: {status}")
+    print(f"Data: {data}")
+
+async def patch_post(post_id):
+    payload = {
+        "title": "Partially Updated Title"
+    }
+    status, data = await make_request('patch', f"{BASE_URL}/posts/{post_id}", payload)
+    print(f"PATCH Post {post_id} Status: {status}")
+    print(f"Data: {data}")
+
+async def delete_post(post_id):
+    status, data = await make_request('delete', f"{BASE_URL}/posts/{post_id}")
+    print(f"DELETE Post {post_id} Status: {status}")
+    print(f"Data: {data}")
+
+async def get_comments():
+    status, data = await make_request('get', f"{BASE_URL}/comments")
+    print(f"GET Comments Status: {status}")
+    print(f"Data: {data[:2]}")
+
+async def create_comment():
+    payload = {
+        "postId": 1,
+        "name": "New Commenter",
+        "email": "commenter@example.com",
+        "body": "This is a comment."
+    }
+    status, data = await make_request('post', f"{BASE_URL}/comments", payload)
+    print(f"POST Create Comment Status: {status}")
+    print(f"Data: {data}")
+
+async def get_users():
+    status, data = await make_request('get', f"{BASE_URL}/users")
+    print(f"GET Users Status: {status}")
+    print(f"Data: {data[:2]}")
+
+async def get_todos():
+    status, data = await make_request('get', f"{BASE_URL}/todos")
+    print(f"GET Todos Status: {status}")
+    print(f"Data: {data[:2]}")
+
+# Sequential Execution
+async def main():
+    await get_posts()
+    await get_post_by_id(1)
+    await create_post()
+    await update_post(1)
+    await patch_post(1)
+    await delete_post(1)
+    await get_comments()
+    await create_comment()
+    await get_users()
+    await get_todos()
+
+if __name__ == "__main__":
+    asyncio.run(main())
