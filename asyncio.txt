@@ -121,5 +121,8 @@ async def main():
     await get_users()
     await get_todos()
 
-if __name__ == "__main__":
+# Check if running in an already open loop (for Jupyter or interactive environments)
+try:
+    asyncio.get_event_loop().run_until_complete(main())
+except RuntimeError:
     asyncio.run(main())
