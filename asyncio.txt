@@ -1,54 +1,77 @@
-import asyncio
-import aiohttp
+import asyncio  # Import the asyncio module to enable asynchronous operations
+import aiohttp  # Import the aiohttp library for making HTTP requests asynchronously
 
 # API Base URL
-BASE_URL = "https://jsonplaceholder.typicode.com"
+BASE_URL = "https://jsonplaceholder.typicode.com"  # The base URL of the API to interact with
 
 # Username and Password for Basic Authentication
-USERNAME = "your_username"
-PASSWORD = "your_password"
+USERNAME = "your_username"  # Username for basic authentication
+PASSWORD = "your_password"  # Password for basic authentication
 
 # Common function to handle HTTP requests
 async def make_request(method, url, payload=None):
-    auth = aiohttp.BasicAuth(USERNAME, PASSWORD)
+    """
+    A generic asynchronous function that sends HTTP requests using aiohttp.
     
-    # Setting ssl=False to disable SSL verification
+    Args:
+    method (str): The HTTP method (e.g., 'get', 'post', 'put', etc.).
+    url (str): The URL to which the request is made.
+    payload (dict, optional): The data to send in the request body (used in POST, PUT, PATCH).
+    
+    Returns:
+    tuple: A tuple containing the response status and data (either JSON or text).
+    """
+    auth = aiohttp.BasicAuth(USERNAME, PASSWORD)  # Basic Authentication with username and password
+    
+    # Setting ssl=False to disable SSL verification for testing purposes
     ssl_context = False
 
     async with aiohttp.ClientSession(auth=auth, connector=aiohttp.TCPConnector(ssl=ssl_context)) as session:
+        # Send GET request
         if method.lower() == 'get':
             async with session.get(url) as response:
-                data = await response.json()
-                return response.status, data
+                data = await response.json()  # Parse the JSON response
+                return response.status, data  # Return status and data
+        
+        # Send POST request
         elif method.lower() == 'post':
             async with session.post(url, json=payload) as response:
-                data = await response.json()
+                data = await response.json()  # Parse the JSON response
                 return response.status, data
+        
+        # Send PUT request
         elif method.lower() == 'put':
             async with session.put(url, json=payload) as response:
-                data = await response.json()
+                data = await response.json()  # Parse the JSON response
                 return response.status, data
+        
+        # Send PATCH request
         elif method.lower() == 'patch':
             async with session.patch(url, json=payload) as response:
-                data = await response.json()
+                data = await response.json()  # Parse the JSON response
                 return response.status, data
+        
+        # Send DELETE request
         elif method.lower() == 'delete':
             async with session.delete(url) as response:
-                return response.status, await response.text()
-
-# Specific Functions
+                return response.status, await response.text()  # Return status and response text (not JSON)
+        
+# Specific Functions to interact with the API
 
 async def get_posts():
+    """Get a list of all posts from the API."""
     status, data = await make_request('get', f"{BASE_URL}/posts")
     print(f"GET Posts Status: {status}")
-    print(f"Data: {data[:2]}")
+    print(f"Data: {data[:2]}")  # Print first 2 posts for brevity
 
 async def get_post_by_id(post_id):
+    """Get a specific post by its ID."""
     status, data = await make_request('get', f"{BASE_URL}/posts/{post_id}")
     print(f"GET Post {post_id} Status: {status}")
-    print(f"Data: {data}")
+    print(f"Data: {data}")  # Print the post data
 
 async def create_post():
+    """Create a new post."""
     payload = {
         "title": "New Post",
         "body": "This is the content of the new post.",
@@ -56,9 +79,10 @@ async def create_post():
     }
     status, data = await make_request('post', f"{BASE_URL}/posts", payload)
     print(f"POST Create Post Status: {status}")
-    print(f"Data: {data}")
+    print(f"Data: {data}")  # Print response data of the created post
 
 async def update_post(post_id):
+    """Update an existing post by its ID."""
     payload = {
         "id": post_id,
         "title": "Updated Title",
@@ -67,27 +91,31 @@ async def update_post(post_id):
     }
     status, data = await make_request('put', f"{BASE_URL}/posts/{post_id}", payload)
     print(f"PUT Update Post {post_id} Status: {status}")
-    print(f"Data: {data}")
+    print(f"Data: {data}")  # Print updated post data
 
 async def patch_post(post_id):
+    """Partially update an existing post by its ID."""
     payload = {
         "title": "Partially Updated Title"
     }
     status, data = await make_request('patch', f"{BASE_URL}/posts/{post_id}", payload)
     print(f"PATCH Post {post_id} Status: {status}")
-    print(f"Data: {data}")
+    print(f"Data: {data}")  # Print partially updated post data
 
 async def delete_post(post_id):
+    """Delete a post by its ID."""
     status, data = await make_request('delete', f"{BASE_URL}/posts/{post_id}")
     print(f"DELETE Post {post_id} Status: {status}")
-    print(f"Data: {data}")
+    print(f"Data: {data}")  # Print the response from deleting the post
 
 async def get_comments():
+    """Get a list of all comments from the API."""
     status, data = await make_request('get', f"{BASE_URL}/comments")
     print(f"GET Comments Status: {status}")
-    print(f"Data: {data[:2]}")
+    print(f"Data: {data[:2]}")  # Print first 2 comments for brevity
 
 async def create_comment():
+    """Create a new comment."""
     payload = {
         "postId": 1,
         "name": "New Commenter",
@@ -96,20 +124,23 @@ async def create_comment():
     }
     status, data = await make_request('post', f"{BASE_URL}/comments", payload)
     print(f"POST Create Comment Status: {status}")
-    print(f"Data: {data}")
+    print(f"Data: {data}")  # Print response data of the created comment
 
 async def get_users():
+    """Get a list of all users from the API."""
     status, data = await make_request('get', f"{BASE_URL}/users")
     print(f"GET Users Status: {status}")
-    print(f"Data: {data[:2]}")
+    print(f"Data: {data[:2]}")  # Print first 2 users for brevity
 
 async def get_todos():
+    """Get a list of all todos from the API."""
     status, data = await make_request('get', f"{BASE_URL}/todos")
     print(f"GET Todos Status: {status}")
-    print(f"Data: {data[:2]}")
+    print(f"Data: {data[:2]}")  # Print first 2 todos for brevity
 
-# Sequential Execution
+# Sequential Execution - The main entry point for the async functions
 async def main():
+    """Main function to call all the specific functions."""
     await get_posts()
     await get_post_by_id(1)
     await create_post()
@@ -123,6 +154,8 @@ async def main():
 
 # Check if running in an already open loop (for Jupyter or interactive environments)
 try:
+    # If there is already an event loop running (e.g., in Jupyter), use it to run the main function
     asyncio.get_event_loop().run_until_complete(main())
 except RuntimeError:
+    # Otherwise, run the main function by creating a new event loop
     asyncio.run(main())
