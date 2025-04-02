@@ -1,0 +1,26 @@
+# Detect and format all timestamp-like columns
+for column in df.columns:
+    if pd.api.types.is_object_dtype(df[column]) or pd.api.types.is_string_dtype(df[column]):
+        try:
+            print(f"Processing column: {column}")
+
+            # Convert column to datetime (without applying strftime directly)
+            converted_column = pd.to_datetime(df[column], errors='coerce')
+
+            # Skip column if all values are NaT (invalid datetimes)
+            if converted_column.isna().all():
+                print(f"Skipping column: {column} as no valid datetime found")
+                continue
+
+            # Remove timezone if present
+            if hasattr(converted_column, 'dt') and converted_column.dt.tz is not None:
+                converted_column = converted_column.dt.tz_localize(None)
+
+            # Format datetime to string in "YYYY-MM-DD HH:MM:SS" format
+            df[column] = converted_column.dt.strftime("%Y-%m-%d %H:%M:%S")
+
+            print(f"Formatted column: {column} as datetime")
+
+        except Exception as e:
+            print(f"Error processing column {column}: {e}")
+            continue
