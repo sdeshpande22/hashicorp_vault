@@ -1,37 +1,9 @@
-from dateutil.parser import parse
-
-# Detect and format all timestamp-like columns
 for column in df.columns:
     if pd.api.types.is_object_dtype(df[column]) or pd.api.types.is_string_dtype(df[column]):
         try:
-            print(f"Processing column: {column}")
-
-            # Attempt to infer the datetime format (if known, specify it explicitly)
-            try:
-                sample_value = df[column].dropna().iloc[0]  # Get a sample non-null value
-                inferred_format = None
-                if isinstance(sample_value, str):
-                    parsed_sample = parse(sample_value)
-                    inferred_format = "%Y-%m-%d %H:%M:%S"  # Adjust based on actual data format
-
-                converted_column = pd.to_datetime(df[column], format=inferred_format, errors='coerce')
-            except Exception:
-                converted_column = pd.to_datetime(df[column], errors='coerce')
-
-            # Skip if all values are NaT
-            if converted_column.isna().all():
-                print(f"Skipping column: {column} as no valid datetime found")
-                continue
-
-            # Remove timezone if present
-            if hasattr(converted_column, 'dt') and converted_column.dt.tz is not None:
-                converted_column = converted_column.dt.tz_localize(None)
-
-            # Format datetime to string in "YYYY-MM-DD HH:MM:SS" format
-            df[column] = converted_column.dt.strftime("%Y-%m-%d %H:%M:%S")
-
-            print(f"Formatted column: {column} as datetime")
-
+            df[column] = pd.to_datetime(df[column], errors="coerce")
+            if df[column].dt.tz is not None:  # If timezone exists, remove it
+                df[column] = df[column].dt.tz_localize(None)
+            df[column] = df[column].dt.strftime("%Y-%m-%d %H:%M:%S")
         except Exception as e:
-            print(f"Error processing column {column}: {e}")
-            continue
+            print(f"Skipping {column} due to error: {e}")
