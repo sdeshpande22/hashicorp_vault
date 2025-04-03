@@ -1,9 +1,29 @@
-for column in df.columns:
-    if pd.api.types.is_object_dtype(df[column]) or pd.api.types.is_string_dtype(df[column]):
-        try:
-            df[column] = pd.to_datetime(df[column], errors="coerce")
-            if df[column].dt.tz is not None:  # If timezone exists, remove it
-                df[column] = df[column].dt.tz_localize(None)
-            df[column] = df[column].dt.strftime("%Y-%m-%d %H:%M:%S")
-        except Exception as e:
-            print(f"Skipping {column} due to error: {e}")
+from influxdb_client import InfluxDBClient
+
+# Define InfluxDB connection details
+url = "http://localhost:8086"  # Replace with your InfluxDB URL
+token = "your-influxdb-token"  # Replace with your actual token
+org = "your-org"               # Replace with your organization name
+bucket = "your-bucket"         # Replace with your bucket name
+
+# Initialize the client
+client = InfluxDBClient(url=url, token=token, org=org)
+
+# Create a query to fetch measurements
+query_api = client.query_api()
+query = f'''
+import "influxdata/influxdb/schema"
+schema.measurements(bucket: "{bucket}")
+'''
+
+# Execute the query
+result = query_api.query(query)
+
+# Extract measurements from the result
+measurements = [record.get_value() for table in result for record in table.records]
+
+# Print the list of measurements
+print("List of Measurements:", measurements)
+
+# Close the client
+client.close()
