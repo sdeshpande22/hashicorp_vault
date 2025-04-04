@@ -1,0 +1,78 @@
+import pandas as pd
+from influxdb_client import InfluxDBClient
+
+# InfluxDB Configuration
+INFLUX_URL = "http://your-influxdb-url"
+TOKEN = "your-token"
+ORG = "your-org"
+BUCKET = "edo_otel_host_metrics_raw"
+
+# Initialize InfluxDB Client
+client = InfluxDBClient(url=INFLUX_URL, token=TOKEN, org=ORG)
+query_api = client.query_api()
+
+# Query to Fetch CPU Data
+query_cpu = '''
+from(bucket: "edo_otel_host_metrics_raw")
+  |> range(start: 2025-04-03T00:00:00.007Z, stop: 2025-04-04T00:00:00.007Z)
+  |> filter(fn: (r) => r._measurement == "otel_system_cpu_utilization" and r._field == "gauge" and r.state == "idle")
+  |> aggregateWindow(every: 1h, fn: mean, createEmpty: false)
+  |> map(fn: (r) => ({ _time: r._time, url: r.url, CPUUtil: 100.0 - (r._value * 100.0) }))
+  |> keep(columns: ["_time", "url", "CPUUtil"])
+'''
+cpu_df = pd.DataFrame(query_api.query_data_frame(org=ORG, query=query_cpu))
+
+# Query to Fetch Memory Data
+query_memory = '''
+from(bucket: "edo_otel_host_metrics_raw")
+  |> range(start: 2025-04-03T00:00:00.007Z, stop: 2025-04-04T00:00:00.007Z)
+  |> filter(fn: (r) => r._measurement == "otel_system_memory_usage" and contains(value: r.state, set: ["buffered", "cached", "free", "slab_reclaimable", "slab_unreclaimable", "used"]))
+  |> pivot(rowKey:["_time"], columnKey: ["state"], valueColumn: "_value")
+  |> map(fn: (r) => ({
+      _time: r._time, url: r.url,
+      used_percentage: if exists r.used and exists r.free then (r.used / (r.used + r.free)) * 100.0 else 0.0,
+      total_memory_bytes: if exists r.used and exists r.free then r.used + r.free else 0.0,
+      total_memory_mb: (r.used + r.free) / (1024.0 * 1024.0),
+      total_memory_gb: (r.used + r.free) / (1024.0 * 1024.0 * 1024.0),
+      used_memory_bytes: r.used,
+      used_memory_mb: r.used / (1024.0 * 1024.0),
+      used_memory_gb: r.used / (1024.0 * 1024.0 * 1024.0),
+      free_memory_bytes: r.free,
+      free_memory_mb: r.free / (1024.0 * 1024.0),
+      free_memory_gb: r.free / (1024.0 * 1024.0 * 1024.0)
+  }))
+  |> keep(columns: ["_time", "url", "used_percentage", "total_memory_bytes", "total_memory_mb", "total_memory_gb", "used_memory_bytes", "used_memory_mb", "used_memory_gb", "free_memory_bytes", "free_memory_mb", "free_memory_gb"])
+'''
+memory_df = pd.DataFrame(query_api.query_data_frame(org=ORG, query=query_memory))
+
+# Close InfluxDB Client
+client.close()
+
+# Convert `_time` to datetime for merging
+cpu_df["_time"] = pd.to_datetime(cpu_df["_time"])
+memory_df["_time"] = pd.to_datetime(memory_df["_time"])
+
+# Merge CPU and Memory Data
+final_df = pd.merge(cpu_df, memory_df, on=["_time", "url"], how="inner")
+
+# Rename Columns for Readability
+final_df.rename(columns={
+    "_time": "Time", "url": "Host",
+    "CPUUtil": "CPU Utilization (%)",
+    "used_percentage": "Memory Used (%)",
+    "total_memory_bytes": "Total Memory (bytes)",
+    "total_memory_mb": "Total Memory (MB)",
+    "total_memory_gb": "Total Memory (GB)",
+    "used_memory_bytes": "Used Memory (bytes)",
+    "used_memory_mb": "Used Memory (MB)",
+    "used_memory_gb": "Used Memory (GB)",
+    "free_memory_bytes": "Free Memory (bytes)",
+    "free_memory_mb": "Free Memory (MB)",
+    "free_memory_gb": "Free Memory (GB)"
+}, inplace=True)
+
+# Save to CSV
+final_df.to_csv("cpu_memory_usage.csv", index=False)
+
+# Display Sample Output
+print(final_df.head())
