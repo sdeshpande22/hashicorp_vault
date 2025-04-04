@@ -1,11 +1,7 @@
-query_memory = '''
 from(bucket: "edo_otel_host_metrics_raw")
 |> range(start: -2h)
-|> filter(fn: (r) => r._measurement == "otel_system_memory_usage" and contains(value: r.state, set: ["buffered", "cached", "free", "slab_reclaimable", "slab_unreclaimable", "used"]))
-|> pivot(rowKey:["_time"], columnKey: ["state"], valueColumn: "_value")
-|> aggregateWindow(every: 1h, fn: mean, createEmpty: false)
-|> group(columns: ["url"])
-|> first()
+|> filter(fn: (r) => r._measurement == "otel_system_memory_usage" and contains(value: r.state, set: ["used", "free"]))
+|> pivot(rowKey: ["_time", "host"], columnKey: ["state"], valueColumn: "_value")  // Pivot first to create 'used' and 'free' columns
 |> map(fn: (r) => ({
     _time: r._time, 
     url: r.url,
@@ -21,6 +17,5 @@ from(bucket: "edo_otel_host_metrics_raw")
     free_memory_gb: r.free / (1024.0 * 1024.0 * 1024.0)
 }))
 |> keep(columns: ["_time", "url", "used_percentage", "total_memory_bytes", "total_memory_mb", "total_memory_gb", "used_memory_bytes", "used_memory_mb", "used_memory_gb", "free_memory_bytes", "free_memory_mb", "free_memory_gb"])
-'''
-
-memory_df = query_api.query_data_frame(query_memory)
+|> group(columns: ["host", "_time"])  // Group after map
+|> aggregateWindow(every: 1h, fn: mean, createEmpty: false)
