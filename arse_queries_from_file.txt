@@ -1,0 +1,29 @@
+def parse_queries_from_file(file_path):
+    queries = {}                 # Final dictionary to store query_name: query_text
+    current_key = None           # Holds the current query name (like 'cpu')
+    current_query = []           # Temporarily stores the lines of the current query
+
+    with open(file_path, "r") as f:
+        for line in f:
+            line = line.rstrip()  # Remove trailing newline or spaces
+
+            # Check if the line marks the start of a new query block
+            if line.startswith("# ---"):
+                # If we were already collecting a previous query, save it to the dict
+                if current_key and current_query:
+                    # Join all collected lines for that query and strip extra spaces
+                    queries[current_key] = "\n".join(current_query).strip()
+                    current_query = []  # Reset for the next query block
+
+                # Extract the new query key, e.g., "cpu", "memory"
+                current_key = line.replace("# ---", "").strip()
+
+            # If the line is part of a query block (not a header), collect it
+            elif current_key:
+                current_query.append(line)
+
+        # After the loop ends, make sure to save the last query block
+        if current_key and current_query:
+            queries[current_key] = "\n".join(current_query).strip()
+
+    return queries  # Return the dictionary of parsed queries
