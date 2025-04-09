@@ -1,0 +1,95 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+
+# --- Import all applicable classifiers ---
+from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier, Perceptron, PassiveAggressiveClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, AdaBoostClassifier, BaggingClassifier
+from sklearn.naive_bayes import GaussianNB, BernoulliNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC, LinearSVC
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+
+# --- Step 1: Load CSV ---
+df = pd.read_csv("your_file.csv")  # Replace with actual file name
+
+# --- Step 2: Keep Host for post-analysis ---
+host_column = df['Host'] if 'Host' in df.columns else None
+
+# --- Step 3: Clean data ---
+df = df.drop(columns=["Time"], errors='ignore')
+df = df.dropna()
+
+# --- Step 4: Create binary target: HighLoad ---
+df['HighLoad'] = ((df['CPU Utilization (%)'] > 80) | 
+                  (df['Used Percentage (%)'] > 85)).astype(int)
+
+# --- Step 5: Feature & Target split ---
+X = df.drop(columns=['HighLoad', 'Host'], errors='ignore')
+y = df['HighLoad']
+
+# --- Step 6: Split dataset ---
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# --- Step 7: Define Models to Compare ---
+models = {
+    "Logistic Regression": LogisticRegression(max_iter=1000),
+    "Ridge Classifier": RidgeClassifier(),
+    "SGD Classifier": SGDClassifier(),
+    "Perceptron": Perceptron(),
+    "Passive Aggressive": PassiveAggressiveClassifier(),
+    "Decision Tree": DecisionTreeClassifier(),
+    "Random Forest": RandomForestClassifier(),
+    "Extra Trees": ExtraTreesClassifier(),
+    "Gradient Boosting": GradientBoostingClassifier(),
+    "AdaBoost": AdaBoostClassifier(),
+    "Bagging Classifier": BaggingClassifier(),
+    "Naive Bayes": GaussianNB(),
+    "BernoulliNB": BernoulliNB(),
+    "K-Nearest Neighbors": KNeighborsClassifier(),
+    "SVC (RBF Kernel)": SVC(),
+    "Linear SVC": LinearSVC(),
+    "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='logloss'),
+    "LightGBM": LGBMClassifier()
+}
+
+# --- Step 8: Train & Evaluate All Models ---
+results = []
+
+for name, model in models.items():
+    print(f"\n🔍 Evaluating: {name}")
+    try:
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        acc = accuracy_score(y_test, y_pred)
+        print(classification_report(y_test, y_pred))
+        results.append((name, acc))
+    except Exception as e:
+        print(f"❌ Failed: {e}")
+        results.append((name, 0))
+
+# --- Step 9: Plot Accuracy Comparison ---
+results_df = pd.DataFrame(results, columns=["Model", "Accuracy"]).sort_values(by="Accuracy", ascending=False)
+
+plt.figure(figsize=(12, 6))
+sns.barplot(data=results_df, x="Accuracy", y="Model", palette="viridis")
+plt.title("🔍 Model Accuracy Comparison")
+plt.xlabel("Accuracy")
+plt.ylabel("Model")
+plt.xlim(0, 1)
+plt.tight_layout()
+plt.show()
+
+# --- Step 10: (Optional) Show hosts predicted under high load ---
+if host_column is not None:
+    df['Host'] = host_column
+    final_model = RandomForestClassifier()
+    final_model.fit(X, y)
+    df['Prediction'] = final_model.predict(X)
+    flagged_hosts = df[df['Prediction'] == 1]['Host'].unique()
+    print("\n🚨 Hosts predicted to be under high load:\n", flagged_hosts)
