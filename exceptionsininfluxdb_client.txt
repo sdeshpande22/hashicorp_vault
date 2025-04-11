@@ -1,0 +1,15 @@
+from influxdb_client.rest import ApiException
+import requests
+
+try:
+    df = self.query_api.query_data_frame(query_text)
+except ApiException as e:
+    print(f"InfluxDB API exception: {e.status} - {e.reason}")
+except requests.exceptions.ConnectionError:
+    print("Failed to connect to InfluxDB.")
+except requests.exceptions.Timeout:
+    print("The request to InfluxDB timed out.")
+except ValueError as ve:
+    print(f"Value error when parsing data: {ve}")
+except Exception as ex:
+    print(f"Unexpected error: {ex}")
