@@ -1,0 +1,26 @@
+import os
+
+# Set folder path and prefixes
+folder_path = r"C:\Your\Folder\Path"
+current_prefix = "oldprefix_"
+new_prefix = "newprefix_"
+
+try:
+    # List all files in the directory
+    for filename in os.listdir(folder_path):
+        if filename.endswith(".csv") and filename.startswith(current_prefix):
+            old_file = os.path.join(folder_path, filename)
+            new_filename = filename.replace(current_prefix, new_prefix, 1)
+            new_file = os.path.join(folder_path, new_filename)
+            
+            try:
+                os.rename(old_file, new_file)
+                print(f"Renamed: {filename} -> {new_filename}")
+            except Exception as e:
+                print(f"Failed to rename {filename}: {e}")
+except FileNotFoundError:
+    print("Error: The folder path does not exist.")
+except PermissionError:
+    print("Error: Permission denied to access the folder or files.")
+except Exception as e:
+    print(f"An unexpected error occurred: {e}")
