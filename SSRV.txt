@@ -1,137 +1,46 @@
-#1. To download CSV file
-import requests
-from requests.auth import HTTPBasicAuth
-import urllib.parse
-
-# ====== CONFIGURATION ======
-report_server_url = "http://your-server/ReportServer"  # Replace with your actual SSRS ReportServer URL
-report_path = "/ConfigMgr_SRV/HSBCCustom/Compliance - specific compliance for an update list for a given Machine"
-machine_name = "MACHINE001"  # Replace with actual machine name
-username = "DOMAIN\\your_username"
-password = "your_password"
-
-# ====== BUILD REPORT URL ======
-encoded_path = urllib.parse.quote(report_path)
-report_url = f"{report_server_url}?{encoded_path}"
-
-# ====== REPORT PARAMETERS ======
-params = {
-    "Machine": machine_name,     # confirmed parameter name
-    "rs:Format": "CSV",          # export format
-    "rs:Command": "Render"       # tells SSRS to render the report
-}
-
-# ====== DOWNLOAD REPORT ======
-response = requests.get(report_url, params=params, auth=HTTPBasicAuth(username, password))
-
-# ====== SAVE CSV FILE ======
-if response.status_code == 200:
-    with open("compliance_report.csv", "wb") as f:
-        f.write(response.content)
-    print("CSV report downloaded successfully as 'compliance_report.csv'")
-else:
-    print(f"Failed to download report: {response.status_code}")
-    print(response.text)
-
-
-
-###############################################################################################################
-#2. Python Script to Discover Parameters
-
-import requests
-from requests.auth import HTTPBasicAuth
-import urllib.parse
-import xml.etree.ElementTree as ET
-
-# ====== CONFIGURATION ======
-report_server_url = "http://your-server/ReportServer"  # Your SSRS URL
-report_path = "/ConfigMgr_SRV/HSBCCustom/Compliance - specific compliance for an update list for a given Machine"
-username = "DOMAIN\\your_username"
-password = "your_password"
-
-# ====== BUILD URL ======
-encoded_path = urllib.parse.quote(report_path)
-param_url = f"{report_server_url}?{encoded_path}&rs:Command=GetParameters"
-
-# ====== FETCH PARAMETERS ======
-response = requests.get(param_url, auth=HTTPBasicAuth(username, password))
-
-if response.status_code == 200:
-    # Parse XML response
-    root = ET.fromstring(response.content)
-    print("Available Parameters:")
-    for param in root.findall(".//Parameter"):
-        name = param.find("Name").text
-        print(f" - {name}")
-else:
-    print(f"❌ Failed to fetch parameters: {response.status_code}")
-    print(response.text)
-
-###############################################################################
 import requests
 from requests_ntlm import HttpNtlmAuth
-import xml.etree.ElementTree as ET
-from datetime import datetime
+import json
 
 # Configuration
-SSRS_URL = "http://your-ssrs-server/Reports/api/v2.0"
+SSRS_BASE_URL = "http://your-ssrs-server/Reports/api/v2.0"
 REPORT_PATH = "/ConfigMgr_SRV/HSBCCustom/Compliance - specific compliance for an update list for a given Machine"
-DOMAIN = "yourdomain"
-USERNAME = "yourusername"
-PASSWORD = "yourpassword"
-MACHINE_NAME = "ZAW25104285"
-UPDATE_LIST = "SRV Baseline - Mar 25"
+AUTH = HttpNtlmAuth('domain\\username', 'password')
 
 def generate_ssrs_report():
-    # Set up authentication
-    auth = HttpNtlmAuth(f"{DOMAIN}\\{USERNAME}", PASSWORD)
-    
-    # 1. Get report parameters to understand required parameters
-    params_url = f"{SSRS_URL}/Reports(Path='{REPORT_PATH}')/Parameters"
-    response = requests.get(params_url, auth=auth)
-    
-    if response.status_code != 200:
-        print(f"Failed to get parameters: {response.status_code} - {response.text}")
-        return
-    
-    # 2. Prepare report parameters
-    parameters = {
-        "Machine": MACHINE_NAME,
-        "UpdateList": UPDATE_LIST
-    }
-    
-    # 3. Execute the report
-    report_url = f"{SSRS_URL}/Reports(Path='{REPORT_PATH}')/Model.GetParameters"
-    payload = {
-        "Parameters": [{"Name": k, "Value": v} for k, v in parameters.items()]
-    }
-    
-    response = requests.post(report_url, json=payload, auth=auth)
-    
-    if response.status_code != 200:
-        print(f"Failed to execute report: {response.status_code} - {response.text}")
-        return
-    
-    # 4. Export the report (PDF example)
-    export_url = f"{SSRS_URL}/Reports(Path='{REPORT_PATH}')/Model.Export"
-    export_params = {
-        "Format": "PDF",
-        "ParameterValues": [{"Name": k, "Value": v} for k, v in parameters.items()]
-    }
-    
-    response = requests.post(export_url, json=export_params, auth=auth)
-    
-    if response.status_code == 200:
-        # Save the report
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"Compliance_Report_{MACHINE_NAME}_{timestamp}.pdf"
+    try:
+        # 1. Prepare parameters
+        params = {
+            "Machine": "ZAW25104285",
+            "UpdateList": "SRV Baseline - Mar 25"
+        }
         
-        with open(filename, 'wb') as f:
-            f.write(response.content)
+        # 2. Execute report
+        execute_url = f"{SSRS_BASE_URL}/Reports(Path='{REPORT_PATH}')/Model.Execute"
+        response = requests.post(execute_url, auth=AUTH, json=params)
         
-        print(f"Report generated successfully: {filename}")
-    else:
-        print(f"Failed to export report: {response.status_code} - {response.text}")
+        if response.status_code != 200:
+            raise Exception(f"API Error: {response.status_code} - {response.text}")
+        
+        # 3. Export to Excel
+        export_url = f"{SSRS_BASE_URL}/Reports(Path='{REPORT_PATH}')/Model.Export"
+        export_params = {
+            "Format": "EXCELOPENXML",
+            "ParameterValues": [{"Name": k, "Value": v} for k, v in params.items()]
+        }
+        
+        response = requests.post(export_url, auth=AUTH, json=export_params)
+        
+        if response.status_code == 200:
+            filename = f"Compliance_Report_ZAW25104285_{datetime.now().strftime('%Y%m%d')}.xlsx"
+            with open(filename, 'wb') as f:
+                f.write(response.content)
+            print(f"Successfully generated report: {filename}")
+        else:
+            raise Exception(f"Export failed: {response.status_code} - {response.text}")
+            
+    except Exception as e:
+        print(f"Error: {str(e)}")
 
 if __name__ == "__main__":
     generate_ssrs_report()
