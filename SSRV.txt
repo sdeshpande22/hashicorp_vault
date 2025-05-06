@@ -1,46 +1,21 @@
-import requests
-from requests_ntlm import HttpNtlmAuth
-import json
+import sspyrs
 
-# Configuration
-SSRS_BASE_URL = "http://your-ssrs-server/Reports/api/v2.0"
-REPORT_PATH = "/ConfigMgr_SRV/HSBCCustom/Compliance - specific compliance for an update list for a given Machine"
-AUTH = HttpNtlmAuth('domain\\username', 'password')
+# SSRS server details
+username = "your_username"
+password = "your_password"
+report_path = "http://your_server/reportserver?/your_report_folder/your_report_name"
+output_file = "path/to/save/report.pdf"
 
-def generate_ssrs_report():
-    try:
-        # 1. Prepare parameters
-        params = {
-            "Machine": "ZAW25104285",
-            "UpdateList": "SRV Baseline - Mar 25"
-        }
-        
-        # 2. Execute report
-        execute_url = f"{SSRS_BASE_URL}/Reports(Path='{REPORT_PATH}')/Model.Execute"
-        response = requests.post(execute_url, auth=AUTH, json=params)
-        
-        if response.status_code != 200:
-            raise Exception(f"API Error: {response.status_code} - {response.text}")
-        
-        # 3. Export to Excel
-        export_url = f"{SSRS_BASE_URL}/Reports(Path='{REPORT_PATH}')/Model.Export"
-        export_params = {
-            "Format": "EXCELOPENXML",
-            "ParameterValues": [{"Name": k, "Value": v} for k, v in params.items()]
-        }
-        
-        response = requests.post(export_url, auth=AUTH, json=export_params)
-        
-        if response.status_code == 200:
-            filename = f"Compliance_Report_ZAW25104285_{datetime.now().strftime('%Y%m%d')}.xlsx"
-            with open(filename, 'wb') as f:
-                f.write(response.content)
-            print(f"Successfully generated report: {filename}")
-        else:
-            raise Exception(f"Export failed: {response.status_code} - {response.text}")
-            
-    except Exception as e:
-        print(f"Error: {str(e)}")
+# Report parameters (if any)
+params = {'param1': 'value1', 'param2': 'value2'}
 
-if __name__ == "__main__":
-    generate_ssrs_report()
+try:
+    # Initialize the report object
+    my_report = sspyrs.report(report_path, username, password, params)
+
+    # Download the report as PDF
+    my_report.download('PDF', output_file)
+    print(f"Report saved as PDF to {output_file}")
+
+except Exception as e:
+    print(f"An error occurred: {e}")
