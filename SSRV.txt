@@ -66,3 +66,72 @@ if response.status_code == 200:
 else:
     print(f"❌ Failed to fetch parameters: {response.status_code}")
     print(response.text)
+
+###############################################################################
+import requests
+from requests_ntlm import HttpNtlmAuth
+import xml.etree.ElementTree as ET
+from datetime import datetime
+
+# Configuration
+SSRS_URL = "http://your-ssrs-server/Reports/api/v2.0"
+REPORT_PATH = "/ConfigMgr_SRV/HSBCCustom/Compliance - specific compliance for an update list for a given Machine"
+DOMAIN = "yourdomain"
+USERNAME = "yourusername"
+PASSWORD = "yourpassword"
+MACHINE_NAME = "ZAW25104285"
+UPDATE_LIST = "SRV Baseline - Mar 25"
+
+def generate_ssrs_report():
+    # Set up authentication
+    auth = HttpNtlmAuth(f"{DOMAIN}\\{USERNAME}", PASSWORD)
+    
+    # 1. Get report parameters to understand required parameters
+    params_url = f"{SSRS_URL}/Reports(Path='{REPORT_PATH}')/Parameters"
+    response = requests.get(params_url, auth=auth)
+    
+    if response.status_code != 200:
+        print(f"Failed to get parameters: {response.status_code} - {response.text}")
+        return
+    
+    # 2. Prepare report parameters
+    parameters = {
+        "Machine": MACHINE_NAME,
+        "UpdateList": UPDATE_LIST
+    }
+    
+    # 3. Execute the report
+    report_url = f"{SSRS_URL}/Reports(Path='{REPORT_PATH}')/Model.GetParameters"
+    payload = {
+        "Parameters": [{"Name": k, "Value": v} for k, v in parameters.items()]
+    }
+    
+    response = requests.post(report_url, json=payload, auth=auth)
+    
+    if response.status_code != 200:
+        print(f"Failed to execute report: {response.status_code} - {response.text}")
+        return
+    
+    # 4. Export the report (PDF example)
+    export_url = f"{SSRS_URL}/Reports(Path='{REPORT_PATH}')/Model.Export"
+    export_params = {
+        "Format": "PDF",
+        "ParameterValues": [{"Name": k, "Value": v} for k, v in parameters.items()]
+    }
+    
+    response = requests.post(export_url, json=export_params, auth=auth)
+    
+    if response.status_code == 200:
+        # Save the report
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"Compliance_Report_{MACHINE_NAME}_{timestamp}.pdf"
+        
+        with open(filename, 'wb') as f:
+            f.write(response.content)
+        
+        print(f"Report generated successfully: {filename}")
+    else:
+        print(f"Failed to export report: {response.status_code} - {response.text}")
+
+if __name__ == "__main__":
+    generate_ssrs_report()
