@@ -37,3 +37,26 @@ with open("report.csv", "wb") as file:
     file.write(result['Result'])
 
 print("✅ Report saved as 'report.csv'")
+################################################################################
+# 1. List all available operations
+print("Available Operations:")
+for service in client.wsdl.services.values():
+    for port in service.ports.values():
+        operations = sorted(
+            port.binding._operations.values(),
+            key=lambda op: op.name
+        )
+        for operation in operations:
+            print(operation.name)
+
+# 2. Get details of specific operations
+print("\nLoadReport details:")
+print(client.wsdl.types.get_type('ns0:LoadReport'))
+
+print("\nParameterValue details:")
+print(client.wsdl.types.get_type('ns0:ParameterValue'))
+
+# 3. Alternative way to see parameter structure
+ParameterValue = client.get_type('ns0:ParameterValue')
+print("\nHow to create ParameterValue:")
+print(ParameterValue.__dict__)
