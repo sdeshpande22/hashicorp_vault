@@ -1,21 +1,39 @@
-import sspyrs
+import requests
+from requests.auth import HTTPBasicAuth
+from urllib.parse import quote
 
-# SSRS server details
+# Prompt user for input
+machine = input("Enter Machine name (e.g., ZAW25104285): ")
+update_list = input("Enter Update List (e.g., SRV Baseline - Mar 25): ")
+
+# URL-encode the report path and parameters
+base_url = "http://reportingsitesrv.hbeu.adroot.hsbc/ReportServer?"
+report_path = "/ConfigMgr_SRV/HSBCCustom/Compliance - specific compliance for an update list for a given Machine"
+report_path_encoded = quote(report_path, safe="")
+
+# Encode query parameters
+machine_encoded = quote(machine)
+update_list_encoded = quote(update_list)
+
+# Final URL with encoded values
+url = (
+    f"{base_url}{report_path_encoded}"
+    f"&Machine={machine_encoded}"
+    f"&UpdateList={update_list_encoded}"
+    f"&rs:Format=CSV"
+)
+
+# Authentication (update with valid credentials)
 username = "your_username"
 password = "your_password"
-report_path = "http://your_server/reportserver?/your_report_folder/your_report_name"
-output_file = "path/to/save/report.pdf"
 
-# Report parameters (if any)
-params = {'param1': 'value1', 'param2': 'value2'}
+# Send request
+response = requests.get(url, auth=HTTPBasicAuth(username, password))
+response.raise_for_status()
 
-try:
-    # Initialize the report object
-    my_report = sspyrs.report(report_path, username, password, params)
+# Save to CSV
+output_file = f"{machine}_{update_list.replace(' ', '_')}.csv"
+with open(output_file, "wb") as f:
+    f.write(response.content)
 
-    # Download the report as PDF
-    my_report.download('PDF', output_file)
-    print(f"Report saved as PDF to {output_file}")
-
-except Exception as e:
-    print(f"An error occurred: {e}")
+print(f"Report saved as: {output_file}")
