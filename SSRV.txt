@@ -1,39 +1,39 @@
+from zeep import Client
+from zeep.transports import Transport
+from requests_ntlm import HttpNtlmAuth
 import requests
-from requests.auth import HTTPBasicAuth
-from urllib.parse import quote
 
-# Prompt user for input
-machine = input("Enter Machine name (e.g., ZAW25104285): ")
-update_list = input("Enter Update List (e.g., SRV Baseline - Mar 25): ")
-
-# URL-encode the report path and parameters
-base_url = "http://reportingsitesrv.hbeu.adroot.hsbc/ReportServer?"
-report_path = "/ConfigMgr_SRV/HSBCCustom/Compliance - specific compliance for an update list for a given Machine"
-report_path_encoded = quote(report_path, safe="")
-
-# Encode query parameters
-machine_encoded = quote(machine)
-update_list_encoded = quote(update_list)
-
-# Final URL with encoded values
-url = (
-    f"{base_url}{report_path_encoded}"
-    f"&Machine={machine_encoded}"
-    f"&UpdateList={update_list_encoded}"
-    f"&rs:Format=CSV"
-)
-
-# Authentication (update with valid credentials)
-username = "your_username"
+# === Config ===
+report_path = "/MyFolder/MyReport"  # Replace this with your actual report path
+username = "DOMAIN\\your.username"  # Replace with your NTLM domain + username
 password = "your_password"
+soap_wsdl = "https://reportingsitesrv.hbeu.adroot.hsbc/ReportServer_SSRS/ReportExecution2005.asmx?wsdl"
 
-# Send request
-response = requests.get(url, auth=HTTPBasicAuth(username, password))
-response.raise_for_status()
+# === Setup NTLM Session ===
+session = requests.Session()
+session.auth = HttpNtlmAuth(username, password)
+transport = Transport(session=session)
 
-# Save to CSV
-output_file = f"{machine}_{update_list.replace(' ', '_')}.csv"
-with open(output_file, "wb") as f:
-    f.write(response.content)
+# === Create SOAP client ===
+client = Client(wsdl=soap_wsdl, transport=transport)
+service = client.service
 
-print(f"Report saved as: {output_file}")
+# === Load Report ===
+exec_info = service.LoadReport(Report=report_path, HistoryID=None)
+execution_id = exec_info.ExecutionID
+
+# === Set Parameters ===
+parameters = [
+    {'Name': 'Machine', 'Value': 'MY_MACHINE_NAME'},  # Replace with actual machine name
+    {'Name': 'AuthListID', 'Value': 'ScopeId_6D845B66-152B-4C86-8ABF-3848BA17BDD9/AuthList_22a24e7e-6da4-4a5b-ab17-e8054da41b82'}
+]
+service.SetExecutionParameters(Parameters=parameters, ParameterLanguage='en-us')
+
+# === Render the Report in CSV format ===
+result = service.Render(Format='CSV', DeviceInfo=None)
+
+# === Save the CSV result ===
+with open("report.csv", "wb") as file:
+    file.write(result['Result'])
+
+print("✅ Report saved as 'report.csv'")
