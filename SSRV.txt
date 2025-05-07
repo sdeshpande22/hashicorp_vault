@@ -17,53 +17,63 @@ transport = Transport(session=session)
 
 # === Create SOAP client ===
 client = Client(wsdl=soap_wsdl, transport=transport)
+ParameterValue = client.get_type('ns0:ParameterValue')
 
-try:
-    # Get the proper ParameterValue type
-    ParameterValue = client.get_type('ns0:ParameterValue')
-    
-    # === Load Report ===
-    exec_info = client.service.LoadReport(Report=report_path, HistoryID=None)
-    execution_id = exec_info.ExecutionID
-    
-    # === Set Parameters - PROPER STRUCTURE ===
-    parameters = [
-        ParameterValue(
-            Name='Machine', 
-            Value='YOUR_MACHINE_NAME',  # Replace with actual value
-            Label='Machine'  # Optional but recommended
-        ),
-        ParameterValue(
-            Name='AuthListID', 
-            Value='ScopeId_6D845B66-152B-4C86-8ABF-3848BA17BDD9/AuthList_22a24e7e-6da4-4a5b-ab17-e8054da41b82',
-            Label='AuthListID'  # Optional but recommended
-        )
-    ]
-    
-    # Set parameters with execution context
-    client.service.SetExecutionParameters(
-        ExecutionID=execution_id,
-        Parameters=parameters,
-        ParameterLanguage='en-us'
-    )
-    
-    # === Render Report ===
-    render_response = client.service.Render(
-        ExecutionID=execution_id,
-        Format='CSV',
-        DeviceInfo='',
-        Extension='',
-        StreamId=''
-    )
-    
-    # === Save Output ===
-    with open("report.csv", "wb") as file:
-        file.write(render_response.Result)
-    
-    print("✅ Report successfully generated as 'report.csv'")
+# === 1. Load Report to get parameter metadata ===
+exec_info = client.service.LoadReport(Report=report_path, HistoryID=None)
+execution_id = exec_info.ExecutionID
 
-except Exception as e:
-    print(f"❌ Error: {str(e)}")
-    if hasattr(e, 'detail'):
-        from zeep.helpers import serialize_object
-        print("Details:", serialize_object(e.detail))
+print("=== Report Parameters Metadata ===")
+for param in exec_info.Parameters:
+    print(f"Name: {param.Name}")
+    print(f"  - Prompt: {param.Prompt or 'None'}")
+    print(f"  - Type: {param.Type}")
+    print(f"  - Nullable: {param.Nullable}")
+    print(f"  - ValidValues: {'Yes' if param.ValidValues else 'No'}")
+    print(f"  - DefaultValues: {param.DefaultValues or 'None'}")
+    print("-----------------------------")
+
+# === 2. Prepare parameters ===
+parameters = [
+    ParameterValue(
+        Name='Machine',
+        Value='YOUR_MACHINE_NAME',  # Replace with actual value
+        Label='Machine'
+    ),
+    ParameterValue(
+        Name='AuthListID',
+        Value='ScopeId_6D845B66-152B-4C86-8ABF-3848BA17BDD9/AuthList_22a24e7e-6da4-4a5b-ab17-e8054da41b82',
+        Label='AuthListID'
+    )
+]
+
+# Add any other required non-nullable parameters
+for param in exec_info.Parameters:
+    if param.Name not in ['Machine', 'AuthListID'] and not param.Nullable:
+        parameters.append(ParameterValue(
+            Name=param.Name,
+            Value=param.DefaultValues[0] if param.DefaultValues else '',
+            Label=param.Name
+        ))
+
+# === 3. Set Parameters ===
+client.service.SetExecutionParameters(
+    ExecutionID=execution_id,
+    Parameters=parameters,
+    ParameterLanguage='en-us'
+)
+
+# === 4. Render Report ===
+render_response = client.service.Render(
+    ExecutionID=execution_id,
+    Format='CSV',
+    DeviceInfo='',
+    Extension='',
+    StreamId=''
+)
+
+# === 5. Save Output ===
+with open("report.csv", "wb") as file:
+    file.write(render_response.Result)
+
+print("✅ Report successfully generated as 'report.csv'")
