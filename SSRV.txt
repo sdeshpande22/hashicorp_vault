@@ -1,81 +1,47 @@
-from zeep import Client
-from zeep.transports import Transport
-from requests_ntlm import HttpNtlmAuth
 import requests
-import xml.etree.ElementTree as ET
+from requests.auth import HTTPBasicAuth
+from xml.etree import ElementTree as ET
 
-# === Configuration ===
-report_path = "/MyFolder/MyReport"
-username = "DOMAIN\\your.username"
-password = "your_password"
-soap_wsdl = "https://reportingsitesrv.hbeu.adroot.hsbc:8080/ReportServer_SSRS/ReportExecution2005.asmx?wsdl"
+# Set SSRS Web Service URL and report path
+ssrs_url = 'http://your-ssrs-server/reportserver/ReportService2010.asmx'
+report_path = '/YourReportFolder/YourReport'
 
-# === Setup Client ===
-session = requests.Session()
-session.auth = HttpNtlmAuth(username, password)
-session.verify = False
-transport = Transport(session=session)
+# Authentication for SSRS Web Service
+username = 'your_username'
+password = 'your_password'
 
-client = Client(wsdl=soap_wsdl, transport=transport)
-service = client.service
+# SOAP Request to get parameter valid values for 'Machine'
+soap_body = f"""
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+               xmlns:rs="http://schemas.microsoft.com/SQLServer/2005/06/30/reporting/reportingservices">
+   <soap:Header/>
+   <soap:Body>
+      <rs:GetReportParameterValidValues>
+         <Report>{report_path}</Report>
+         <ParameterName>Machine</ParameterName>
+         <MaximumNumberOfValues>100</MaximumNumberOfValues>
+      </rs:GetReportParameterValidValues>
+   </soap:Body>
+</soap:Envelope>
+"""
 
-# === 1. Load Report ===
-exec_info = service.LoadReport(Report=report_path, HistoryID=None)
-execution_id = exec_info.ExecutionID
+# Send SOAP request to the SSRS Web Service
+response = requests.post(ssrs_url, data=soap_body, auth=HTTPBasicAuth(username, password), headers={'Content-Type': 'application/soap+xml; charset=utf-8'})
 
-# === 2. Prepare Parameters with EXACT XML Structure ===
-parameters = [
-    {
-        'Name': 'Machine',
-        'Value': 'YOUR_ACTUAL_MACHINE_NAME',  # MUST REPLACE THIS
-        'Label': 'Machine'
-    },
-    {
-        'Name': 'AuthListID',
-        'Value': 'ScopeId_60845866-1528-4686-8ABF-38488A17BD09/AuthList_395326c5-e8f4-4321-b0e0-2f32536b6832',
-        'Label': 'AuthList'
-    }
-]
+# Check if the request was successful
+if response.status_code == 200:
+    print("Valid values for 'Machine' parameter:")
+    try:
+        # Parse the XML response and extract valid values
+        tree = ET.ElementTree(ET.fromstring(response.content))
+        root = tree.getroot()
 
-# === 3. Set Parameters with STRICT XML FORMATTING ===
-# Manually build the SOAP XML to ensure perfect structure
-params_xml = """
-<Parameters xmlns="http://schemas.microsoft.com/sqlserver/2005/06/30/reporting/reportingservices">
-    {params}
-</Parameters>
-""".format(
-    params=''.join([
-        f"""
-        <Parameter>
-            <Name>{p['Name']}</Name>
-            <Value>{p['Value']}</Value>
-        </Parameter>
-        """ for p in parameters
-    ])
-)
+        # Look for the 'Value' elements that contain valid machine names
+        valid_values = [value.text for value in root.iter('Value')]
 
-# === 4. Execute with Manual XML ===
-# First reset execution to ensure clean state
-service.ResetExecution(ExecutionID=execution_id)
-
-# Set parameters using the raw XML
-set_response = service.SetExecutionParameters(
-    ExecutionID=execution_id,
-    Parameters=params_xml,
-    ParameterLanguage='en-us'
-)
-
-# === 5. Render Report ===
-render_response = service.Render(
-    ExecutionID=execution_id,
-    Format='CSV',
-    DeviceInfo='',
-    Extension='',
-    StreamId=''
-)
-
-# === 6. Save Output ===
-with open("report.csv", "wb") as f:
-    f.write(render_response.Result)
-
-print("✅ Report successfully generated")
+        # Print the valid values for 'Machine' parameter
+        print(valid_values)
+    except Exception as e:
+        print(f"Error parsing response: {e}")
+else:
+    print(f"Error: {response.status_code} - {response.text}")
