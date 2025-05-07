@@ -1,79 +1,57 @@
 from zeep import Client
 from zeep.transports import Transport
-from requests_ntlm import HttpNtlmAuth
-import requests
+from zeep.plugins import HistoryPlugin
+from requests import Session
+from requests_kerberos import HTTPKerberosAuth
+from lxml import etree
 
-# === Config ===
-report_path = "/MyFolder/MyReport"
-username = "DOMAIN\\your.username"
-password = "your_password"
-soap_wsdl = "https://reportingsitesrv.hbeu.adroot.hsbc:8080/ReportServer_SSRS/ReportExecution2005.asmx?wsdl"
-
-# === Setup NTLM Session ===
-session = requests.Session()
-session.auth = HttpNtlmAuth(username, password)
+# === Setup session and transport ===
+session = Session()
+session.auth = HTTPKerberosAuth(mutual_authentication='OPTIONAL')
 session.verify = False
 transport = Transport(session=session)
 
-# === Create SOAP client ===
-client = Client(wsdl=soap_wsdl, transport=transport)
-ParameterValue = client.get_type('ns0:ParameterValue')
+# === Setup history plugin to capture raw SOAP ===
+history = HistoryPlugin()
 
-# === 1. Load Report to get parameter metadata ===
+# === WSDL URL ===
+wsdl_url = 'http://reportingsitesrv.hbeu.adroot.hsbc/ReportServer_SSRS/ReportExecution2005.asmx?wsdl'
+
+# === Create SOAP client ===
+client = Client(wsdl=wsdl_url, transport=transport, plugins=[history])
+
+# === Load the report ===
+report_path = '/Your/Report/Path/Here'
 exec_info = client.service.LoadReport(Report=report_path, HistoryID=None)
 execution_id = exec_info.ExecutionID
 
-print("=== Report Parameters Metadata ===")
-for param in exec_info.Parameters:
-    print(f"Name: {param.Name}")
-    print(f"  - Prompt: {param.Prompt or 'None'}")
-    print(f"  - Type: {param.Type}")
-    print(f"  - Nullable: {param.Nullable}")
-    print(f"  - ValidValues: {'Yes' if param.ValidValues else 'No'}")
-    print(f"  - DefaultValues: {param.DefaultValues or 'None'}")
-    print("-----------------------------")
+# === Set ExecutionHeader ===
+execution_header_type = client.get_type('ns0:ExecutionHeader')
+execution_header = execution_header_type(ExecutionID=execution_id)
+client.set_default_soapheaders([execution_header])
 
-# === 2. Prepare parameters ===
+# === Get parameter type ===
+ParameterValue = client.get_type('ns0:ParameterValue')
+
+# === Define parameters (without Label) ===
 parameters = [
-    ParameterValue(
-        Name='Machine',
-        Value='YOUR_MACHINE_NAME',  # Replace with actual value
-        Label='Machine'
-    ),
-    ParameterValue(
-        Name='AuthListID',
-        Value='ScopeId_6D845B66-152B-4C86-8ABF-3848BA17BDD9/AuthList_22a24e7e-6da4-4a5b-ab17-e8054da41b82',
-        Label='AuthListID'
-    )
+    ParameterValue(Name='Machine', Value='ZAW25104285'),
+    ParameterValue(Name='AuthListID', Value='ScopeId_6D845B66-152B-4C86-8ABF-3848BA17BDD9/AuthList_22a24e7e-6da4-4a5b-ab17-e8054da41b82')
 ]
 
-# Add any other required non-nullable parameters
-for param in exec_info.Parameters:
-    if param.Name not in ['Machine', 'AuthListID'] and not param.Nullable:
-        parameters.append(ParameterValue(
-            Name=param.Name,
-            Value=param.DefaultValues[0] if param.DefaultValues else '',
-            Label=param.Name
-        ))
+# === Set parameters ===
+client.service.SetExecutionParameters(Parameters=parameters, ParameterLanguage='en-us')
 
-# === 3. Set Parameters ===
-client.service.SetExecutionParameters(
-    ExecutionID=execution_id,
-    Parameters=parameters,
-    ParameterLanguage='en-us'
-)
+# === Log raw SOAP request and response ===
+print("\n=== RAW SOAP REQUEST ===")
+print(etree.tostring(history.last_sent.envelope, pretty_print=True).decode())
 
-# === 4. Render Report ===
-render_response = client.service.Render(
-    ExecutionID=execution_id,
-    Format='CSV',
-    DeviceInfo='',
-    Extension='',
-    StreamId=''
-)
+print("\n=== RAW SOAP RESPONSE ===")
+print(etree.tostring(history.last_received.envelope, pretty_print=True).decode())
 
-# === 5. Save Output ===
-with open("report.csv", "wb") as file:
-    file.write(render_response.Result)
+# === Render report ===
+result = client.service.Render(Format='CSV', DeviceInfo='')
+with open('report.csv', 'wb') as f:
+    f.write(result['Result'])
 
-print("✅ Report successfully generated as 'report.csv'")
+print("✅ Report generated as 'report.csv'")
