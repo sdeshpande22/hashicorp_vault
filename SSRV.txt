@@ -1,47 +1,38 @@
+from zeep import Client
+from zeep.transports import Transport
 import requests
-from requests.auth import HTTPBasicAuth
-from xml.etree import ElementTree as ET
+from requests_negotiate_sspi import HttpNegotiateAuth
 
-# Set SSRS Web Service URL and report path
-ssrs_url = 'http://your-ssrs-server/reportserver/ReportService2010.asmx'
-report_path = '/YourReportFolder/YourReport'
+# HSBC SSRS WSDL URLs (replace with your actual URLs)
+REPORT_SERVICE_WSDL = "https://reportingsitesrv.hbeu.adroot.hsbc:8080/ReportServer_SSRS/ReportService2010.asmx?wsdl"
+REPORT_EXECUTION_WSDL = "https://reportingsitesrv.hbeu.adroot.hsbc:8080/ReportServer_SSRS/ReportExecution2005.asmx?wsdl"
 
-# Authentication for SSRS Web Service
-username = 'your_username'
-password = 'your_password'
+# Create a session with Windows Integrated Auth (SSPI)
+session = requests.Session()
+session.auth = HttpNegotiateAuth()  # Auto-uses your current Windows credentials
 
-# SOAP Request to get parameter valid values for 'Machine'
-soap_body = f"""
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
-               xmlns:rs="http://schemas.microsoft.com/SQLServer/2005/06/30/reporting/reportingservices">
-   <soap:Header/>
-   <soap:Body>
-      <rs:GetReportParameterValidValues>
-         <Report>{report_path}</Report>
-         <ParameterName>Machine</ParameterName>
-         <MaximumNumberOfValues>100</MaximumNumberOfValues>
-      </rs:GetReportParameterValidValues>
-   </soap:Body>
-</soap:Envelope>
-"""
+# Disable SSL verification if needed (for testing only)
+session.verify = False
 
-# Send SOAP request to the SSRS Web Service
-response = requests.post(ssrs_url, data=soap_body, auth=HTTPBasicAuth(username, password), headers={'Content-Type': 'application/soap+xml; charset=utf-8'})
-
-# Check if the request was successful
-if response.status_code == 200:
-    print("Valid values for 'Machine' parameter:")
-    try:
-        # Parse the XML response and extract valid values
-        tree = ET.ElementTree(ET.fromstring(response.content))
-        root = tree.getroot()
-
-        # Look for the 'Value' elements that contain valid machine names
-        valid_values = [value.text for value in root.iter('Value')]
-
-        # Print the valid values for 'Machine' parameter
-        print(valid_values)
-    except Exception as e:
-        print(f"Error parsing response: {e}")
-else:
-    print(f"Error: {response.status_code} - {response.text}")
+# Initialize Zeep clients for ReportService2010 and ReportExecution2005
+try:
+    # Client for ReportService2010 (managing reports)
+    rs_client = Client(
+        REPORT_SERVICE_WSDL,
+        transport=Transport(session=session)
+    )
+    
+    # Client for ReportExecution2005 (running reports)
+    re_client = Client(
+        REPORT_EXECUTION_WSDL,
+        transport=Transport(session=session)
+    )
+    
+    print("✅ Successfully connected to HSBC SSRS via SOAP!")
+    
+    # Example: List all reports in the root folder
+    reports = rs_client.service.ListChildren("/", False)
+    print("📂 Reports in root folder:", reports)
+    
+except Exception as e:
+    print(f"❌ Connection failed: {e}")
