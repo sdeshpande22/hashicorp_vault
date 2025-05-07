@@ -1,57 +1,81 @@
 from zeep import Client
 from zeep.transports import Transport
-from zeep.plugins import HistoryPlugin
-from requests import Session
-from requests_kerberos import HTTPKerberosAuth
-from lxml import etree
+from requests_ntlm import HttpNtlmAuth
+import requests
+import xml.etree.ElementTree as ET
 
-# === Setup session and transport ===
-session = Session()
-session.auth = HTTPKerberosAuth(mutual_authentication='OPTIONAL')
+# === Configuration ===
+report_path = "/MyFolder/MyReport"
+username = "DOMAIN\\your.username"
+password = "your_password"
+soap_wsdl = "https://reportingsitesrv.hbeu.adroot.hsbc:8080/ReportServer_SSRS/ReportExecution2005.asmx?wsdl"
+
+# === Setup Client ===
+session = requests.Session()
+session.auth = HttpNtlmAuth(username, password)
 session.verify = False
 transport = Transport(session=session)
 
-# === Setup history plugin to capture raw SOAP ===
-history = HistoryPlugin()
+client = Client(wsdl=soap_wsdl, transport=transport)
+service = client.service
 
-# === WSDL URL ===
-wsdl_url = 'http://reportingsitesrv.hbeu.adroot.hsbc/ReportServer_SSRS/ReportExecution2005.asmx?wsdl'
-
-# === Create SOAP client ===
-client = Client(wsdl=wsdl_url, transport=transport, plugins=[history])
-
-# === Load the report ===
-report_path = '/Your/Report/Path/Here'
-exec_info = client.service.LoadReport(Report=report_path, HistoryID=None)
+# === 1. Load Report ===
+exec_info = service.LoadReport(Report=report_path, HistoryID=None)
 execution_id = exec_info.ExecutionID
 
-# === Set ExecutionHeader ===
-execution_header_type = client.get_type('ns0:ExecutionHeader')
-execution_header = execution_header_type(ExecutionID=execution_id)
-client.set_default_soapheaders([execution_header])
-
-# === Get parameter type ===
-ParameterValue = client.get_type('ns0:ParameterValue')
-
-# === Define parameters (without Label) ===
+# === 2. Prepare Parameters with EXACT XML Structure ===
 parameters = [
-    ParameterValue(Name='Machine', Value='ZAW25104285'),
-    ParameterValue(Name='AuthListID', Value='ScopeId_6D845B66-152B-4C86-8ABF-3848BA17BDD9/AuthList_22a24e7e-6da4-4a5b-ab17-e8054da41b82')
+    {
+        'Name': 'Machine',
+        'Value': 'YOUR_ACTUAL_MACHINE_NAME',  # MUST REPLACE THIS
+        'Label': 'Machine'
+    },
+    {
+        'Name': 'AuthListID',
+        'Value': 'ScopeId_60845866-1528-4686-8ABF-38488A17BD09/AuthList_395326c5-e8f4-4321-b0e0-2f32536b6832',
+        'Label': 'AuthList'
+    }
 ]
 
-# === Set parameters ===
-client.service.SetExecutionParameters(Parameters=parameters, ParameterLanguage='en-us')
+# === 3. Set Parameters with STRICT XML FORMATTING ===
+# Manually build the SOAP XML to ensure perfect structure
+params_xml = """
+<Parameters xmlns="http://schemas.microsoft.com/sqlserver/2005/06/30/reporting/reportingservices">
+    {params}
+</Parameters>
+""".format(
+    params=''.join([
+        f"""
+        <Parameter>
+            <Name>{p['Name']}</Name>
+            <Value>{p['Value']}</Value>
+        </Parameter>
+        """ for p in parameters
+    ])
+)
 
-# === Log raw SOAP request and response ===
-print("\n=== RAW SOAP REQUEST ===")
-print(etree.tostring(history.last_sent.envelope, pretty_print=True).decode())
+# === 4. Execute with Manual XML ===
+# First reset execution to ensure clean state
+service.ResetExecution(ExecutionID=execution_id)
 
-print("\n=== RAW SOAP RESPONSE ===")
-print(etree.tostring(history.last_received.envelope, pretty_print=True).decode())
+# Set parameters using the raw XML
+set_response = service.SetExecutionParameters(
+    ExecutionID=execution_id,
+    Parameters=params_xml,
+    ParameterLanguage='en-us'
+)
 
-# === Render report ===
-result = client.service.Render(Format='CSV', DeviceInfo='')
-with open('report.csv', 'wb') as f:
-    f.write(result['Result'])
+# === 5. Render Report ===
+render_response = service.Render(
+    ExecutionID=execution_id,
+    Format='CSV',
+    DeviceInfo='',
+    Extension='',
+    StreamId=''
+)
 
-print("✅ Report generated as 'report.csv'")
+# === 6. Save Output ===
+with open("report.csv", "wb") as f:
+    f.write(render_response.Result)
+
+print("✅ Report successfully generated")
