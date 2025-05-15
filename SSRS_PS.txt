@@ -1,0 +1,26 @@
+$authListValue = $null
+$authListParam = $null
+
+foreach ($param in $parameters) {
+    if ($param.Name -eq "AuthListID" -and $param.ValidValues) {
+        $authListParam = $param
+        Write-Host "Inspecting ValidValues for AuthListID:"
+        foreach ($value in $param.ValidValues.ValidValue) {
+            Write-Host "Label: '$($value.Label)', Value: '$($value.Value)'"
+            if ($value.Label.Trim() -ieq $AuthListLabel.Trim()) {
+                $authListValue = $value.Value
+                break
+            }
+        }
+    }
+}
+
+if (-not $authListValue) {
+    Write-Host "Error: AuthListID label '$AuthListLabel' not found. Available labels:"
+    if ($authListParam) {
+        foreach ($value in $authListParam.ValidValues.ValidValue) {
+            Write-Host "  - '$($value.Label)'"
+        }
+    }
+    exit 1
+}
