@@ -1,0 +1,19 @@
+Subject: Request for Local Administrator Rights to Configure Scheduled Task
+
+Dear [Recipient's Name],
+
+I hope this message finds you well.
+
+I am writing to request temporary Local Administrator rights (or assistance from someone with admin privileges) to configure a Windows Scheduled Task that needs to meet the following requirement:
+
+Requirement:
+The task must be set to “Run whether user is logged on or not” so that it can execute in the background, even if the user is not actively logged in.
+
+Reason Admin Access is Required:
+Windows requires administrator privileges to configure this setting because it involves storing credentials securely and running the task in a non-interactive session. Without admin rights, the system restricts the task configuration to only “Run only when user is logged on,” which does not meet the operational requirement.
+
+The task is responsible for sending automated emails as part of [briefly mention the purpose, e.g., "a reporting workflow" or "a monitoring alert system"].
+
+Please let me know if you need any further details. I’d be happy to coordinate a time if assistance from an admin is preferred over granting rights directly.
+
+Thank you for your support.
