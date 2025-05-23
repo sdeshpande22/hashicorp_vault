@@ -1,0 +1,30 @@
+1. Pytest API Testing Automation – Now Supports Async Requests
+I designed and implemented a scalable and reusable API testing automation framework using Pytest, which now includes support for asynchronous request execution using httpx and pytest-asyncio. Key outcomes:
+
+Enabled end-to-end testing of APIs that return responses concurrently or stream data, thus improving compatibility with modern microservice architectures.
+
+Reduced test suite execution time by approximately 40% in services with high I/O-bound APIs.
+
+Simplified debugging and reporting through structured test case definitions, parameterization, and reusable test configurations.
+
+This enhancement significantly boosts CI/CD test coverage and agility for API-driven platforms.
+
+2. Athene Metrics Automation – InfluxDB to Athene Integration
+Built a Python-based automation solution for Athene, focused on gathering system performance metrics and automating their ingestion into the tool:
+
+Extracted key system metrics (CPU usage, memory usage, and filesystem utilization) from InfluxDB for 7 monitored hosts using efficient Flux queries.
+
+Utilized multi-threading to parallelize the extraction and CSV generation process, drastically reducing the processing time from ~2 hours to ~20 minutes for a full day’s (24-hour) worth of data.
+
+Developed logic to generate well-structured CSV files, which are then automatically pushed to a pre-defined Athene NFS share.
+
+This data is now directly consumed by the Athene tool for alerting, visualization, and predictive analytics, contributing to improved system reliability and proactive operations.
+
+3. Enterprise Educate Program (EEP 2024) Completion – PL-300 Certified
+As part of my continuous learning and development goals, I successfully completed the Enterprise Educate Program 2024 and earned the PL-300: Microsoft Power BI Data Analyst Associate certification.
+
+Gained proficiency in data modeling, cleansing, and advanced DAX functions.
+
+Built dashboards and reports that help in deriving actionable insights from enterprise datasets.
+
+Applied these skills internally to generate better visibility into operations and enhance reporting automation.
