@@ -1,0 +1,25 @@
+Key Responsibilities
+•	Develop, enhance, and maintain robust Python Automation scripts.
+
+•	Improve and refactor existing codebases for performance, readability, and reusability.
+
+•	Understand and implement custom automation requirements from internal stakeholders.
+
+•	Handle large datasets and perform data aggregation, filtering, and transformation using Pandas and NumPy
+
+•	Generate basic data visualizations using Matplotlib, Seaborn, or Plotly to support reporting and analysis
+
+•	Interact with various data sources (CSV, Excel, REST APIs, JSON, Databases)
+
+•	Write clear, modular, and testable code with unit tests using pytest or unittest etc.,
+
+•	Collaborate with cross-functional teams to understand business logic and automate manual tasks
+
+•	Maintain detailed documentation for processes, scripts, and automation logic
+
+•	Design and maintain CI/CD pipelines using Jenkins for Python-based tools and automations.
+
+•	Automate testing, code validation, and deployment processes by Integrating Jenkins with Git repositories
+
+
+
