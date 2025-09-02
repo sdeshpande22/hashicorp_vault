@@ -1,0 +1,19 @@
+from pyspark.sql.functions import col
+
+# Example DataFrame
+data = [("1", "25", "1000.50"), ("2", "30", "2000.75")]
+df = spark.createDataFrame(data, ["id", "age", "salary"])
+
+# Dictionary of columns and target datatypes
+cast_dict = {
+    "id": "int",
+    "age": "int",
+    "salary": "double"
+}
+
+# Loop through and cast
+for column, dtype in cast_dict.items():
+    df = df.withColumn(column, col(column).cast(dtype))
+
+df.printSchema()
+df.show()
